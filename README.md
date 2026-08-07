@@ -18,3 +18,6 @@ naiwa/           奶蛙（玩家）素材
 dagou/           大狗（AI）素材
 奶蛙vs大狗.html   游戏本体（全部代码）
 ```
+
+## 在线试玩
+https://0812stardust.github.io/naiwa-vs-dagou/
