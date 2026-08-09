@@ -2,58 +2,86 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>奶蛙 vs 大狗 v0.2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>奶蛙 vs 大狗 v0.3</title>
+<link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22short_name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%2F%22%7D'>
 <style>
-  html, body { margin: 0; height: 100%; background: #1c2b3a; display: flex; align-items: center; justify-content: center; font-family: "Microsoft YaHei", sans-serif; user-select: none; }
+  html, body { margin: 0; height: 100%; background: #1c2b3a; display: flex; align-items: center; justify-content: center; font-family: "Microsoft YaHei", sans-serif; user-select: none; overflow: hidden; }
   #wrap { position: relative; }
-  canvas { display: block; border: 4px solid #0d1b2a; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); background: #8fd3ff; }
-  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,20,30,0.85); border-radius: 10px; z-index: 10; }
+  canvas { display: block; border: 4px solid #0d1b2a; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); background: #8fd3ff; width: min(96vw, calc(92vh * 1.8), 900px); aspect-ratio: 900 / 500; height: auto; }
+  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,20,30,0.85); border-radius: 10px; z-index: 10; animation: fadeIn .18s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   .hidden { display: none !important; }
-  .menu-box { text-align: center; color: #fff; width: 360px; }
-  .menu-box h1 { font-size: 42px; letter-spacing: 8px; color: #ffd700; margin: 0 0 4px; text-shadow: 0 3px 0 rgba(0,0,0,0.5); }
-  .menu-box h2 { font-size: 28px; letter-spacing: 6px; color: #ffd700; margin: 0 0 14px; }
-  .sub { font-size: 17px; color: rgba(255,255,255,0.9); margin: 0 0 6px; }
-  .ver { font-size: 13px; color: rgba(255,255,255,0.55); letter-spacing: 3px; margin: 0 0 14px; }
-  .tips { font-size: 13px; color: rgba(255,255,255,0.7); margin: 12px 0 0; }
-  .menu-box button { display: block; width: 240px; margin: 10px auto; padding: 11px 0; font-size: 18px; font-family: inherit; color: #fff; background: linear-gradient(180deg,#4a9e6a,#2f7a4e); border: 2px solid #1d5135; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.35); }
+  .menu-box { text-align: center; color: #fff; width: 380px; max-height: 92%; overflow-y: auto; }
+  .menu-box h1 { font-size: 40px; letter-spacing: 8px; color: #ffd700; margin: 0 0 4px; text-shadow: 0 3px 0 rgba(0,0,0,0.5); }
+  .menu-box h2 { font-size: 26px; letter-spacing: 6px; color: #ffd700; margin: 0 0 12px; }
+  .sub { font-size: 16px; color: rgba(255,255,255,0.9); margin: 0 0 6px; }
+  .ver { font-size: 13px; color: rgba(255,255,255,0.55); letter-spacing: 3px; margin: 0 0 12px; }
+  .tips { font-size: 13px; color: rgba(255,255,255,0.7); margin: 10px 0 0; }
+  .key-hint { font-size: 13px; color: #ffd700; margin: 6px 0 0; min-height: 18px; }
+  .menu-box button { display: block; width: 240px; margin: 9px auto; padding: 10px 0; font-size: 17px; font-family: inherit; color: #fff; background: linear-gradient(180deg,#4a9e6a,#2f7a4e); border: 2px solid #1d5135; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.35); }
   .menu-box button:hover { filter: brightness(1.12); }
   .menu-box button:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
   #btnStart { background: linear-gradient(180deg,#ffd700,#e0a800); border-color: #9a7200; color: #4a3200; }
   #btnVsP2 { background: linear-gradient(180deg,#7a6ae0,#5746b8); border-color: #3a2d85; }
+  #btnTrain { background: linear-gradient(180deg,#3ecf8e,#1f9d68); border-color: #146b47; }
+  #btnStats { background: linear-gradient(180deg,#5aa7c9,#387fa3); border-color: #235a78; }
   #btnSettings { background: linear-gradient(180deg,#3d8fd1,#2568a8); border-color: #154a7a; }
   #btnExit { background: linear-gradient(180deg,#d15050,#a03030); border-color: #701e1e; }
-  .small-btn { width: 160px !important; font-size: 14px !important; padding: 8px 0 !important; background: linear-gradient(180deg,#5a6b7d,#3d4c5c) !important; border-color: #2a3542 !important; }
+  .small-btn { width: 170px !important; font-size: 14px !important; padding: 8px 0 !important; background: linear-gradient(180deg,#5a6b7d,#3d4c5c) !important; border-color: #2a3542 !important; }
   #pauseBtn { position: absolute; top: 8px; left: 8px; width: 34px; height: 34px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.8); background: rgba(0,0,0,0.35); color: #fff; font-size: 16px; cursor: pointer; z-index: 5; }
   #pauseBtn:hover { background: rgba(0,0,0,0.55); }
+  #trainResetBtn { position: absolute; bottom: 8px; right: 8px; padding: 6px 12px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.8); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px; cursor: pointer; z-index: 5; }
   .menu-box input[type=text] { display: block; width: 220px; margin: 14px auto; padding: 10px; font-size: 17px; font-family: inherit; text-align: center; border-radius: 8px; border: 2px solid #2a6a9a; background: rgba(255,255,255,0.12); color: #fff; outline: none; }
-  .setting-row { display: flex; align-items: center; justify-content: space-between; width: 300px; margin: 12px auto; font-size: 16px; }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; width: 320px; margin: 11px auto; font-size: 15px; }
   .stepper { display: flex; align-items: center; gap: 8px; }
   .stepper button { width: 42px; height: 40px; padding: 0; margin: 0; font-size: 18px; }
   .stepper span { min-width: 34px; font-size: 22px; font-weight: bold; color: #ffd700; }
-  .map-btn { width: 110px !important; height: 40px !important; padding: 0 !important; margin: 0 !important; font-size: 15px !important; }
+  .map-btn { width: 104px !important; height: 40px !important; padding: 0 !important; margin: 0 !important; font-size: 14px !important; }
   .map-btn.selected { outline: 3px solid #ffd700; filter: brightness(1.2); }
+  .map-btn.conflict { outline: 3px solid #ff5555; background: #a33 !important; }
   #soundToggle { width: 92px; height: 40px; padding: 0; margin: 0; font-size: 15px; }
-  .range-row { display: flex; align-items: center; justify-content: space-between; width: 300px; margin: 12px auto; font-size: 16px; }
-  .range-row input { width: 180px; }
-  #btnBack, #btnBack2 { margin-top: 16px; }
-  #keysTable { width: 300px; margin: 10px auto; border-collapse: collapse; font-size: 14px; }
-  #keysTable td { border: 1px solid rgba(255,255,255,0.25); padding: 6px; text-align: center; }
+  .range-row { display: flex; align-items: center; justify-content: space-between; width: 320px; margin: 11px auto; font-size: 15px; }
+  .range-row input { width: 190px; }
+  #btnBack, #btnBack2, #btnBack3 { margin-top: 14px; }
+  #keysTable { width: 320px; margin: 8px auto; border-collapse: collapse; font-size: 13px; }
+  #keysTable td { border: 1px solid rgba(255,255,255,0.25); padding: 5px; text-align: center; }
   #keysTable .action-name { text-align: left; color: rgba(255,255,255,0.85); }
-  #keysTable button { width: 110px; margin: 0; padding: 5px 0; font-size: 14px; }
-  .key-hint { font-size: 13px; color: #ffd700; margin: 6px 0 0; min-height: 18px; }
+  #keysTable button { width: 108px; margin: 0; padding: 5px 0; font-size: 13px; }
+  #keysTable button.conflict { background: #b33 !important; border-color: #f66 !important; }
+  .stat-line { font-size: 15px; color: rgba(255,255,255,0.9); margin: 7px 0; }
+  #charStatHint { font-size: 12px; color: rgba(255,255,255,0.75); line-height: 1.6; min-height: 20px; }
+  #pauseInfo { font-size: 13px; color: rgba(255,255,255,0.85); margin: 8px 0; }
+  /* 触屏虚拟按键 */
+  #touchCtrl { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  #touchCtrl .tbtn { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); background: rgba(0,0,0,0.3); color: #fff; font-size: 18px; display: flex; align-items: center; justify-content: center; pointer-events: auto; touch-action: none; }
+  #touchCtrl .tbtn:active { background: rgba(255,255,255,0.35); }
+  .t-left { left: 14px; bottom: 70px; } .t-right { left: 84px; bottom: 70px; }
+  .t-jump { left: 30px; bottom: 140px; } .t-crouch { left: 84px; bottom: 14px; }
+  .t-attack { right: 84px; bottom: 70px; } .t-special { right: 14px; bottom: 70px; } .t-bomb { right: 48px; bottom: 140px; }
 </style>
 </head>
 <body>
 <div id="wrap">
   <canvas id="game" width="900" height="500"></canvas>
   <button id="pauseBtn" class="hidden" title="暂停">⏸</button>
+  <button id="trainResetBtn" class="hidden" title="重置木桩血量">🔄 重置木桩</button>
+
+  <div id="touchCtrl" class="hidden">
+    <button class="tbtn t-left" data-act="left">◀</button>
+    <button class="tbtn t-right" data-act="right">▶</button>
+    <button class="tbtn t-jump" data-act="jump">▲</button>
+    <button class="tbtn t-crouch" data-act="crouch">▼</button>
+    <button class="tbtn t-attack" data-act="attack">⚔</button>
+    <button class="tbtn t-special" data-act="special">★</button>
+    <button class="tbtn t-bomb" data-act="bomb">💣</button>
+  </div>
 
   <div id="loginScreen" class="overlay">
     <div class="menu-box">
       <h1>奶蛙 vs 大狗</h1>
       <p class="sub">🐸 格斗对战 🐶</p>
-      <p class="ver">v0.2</p>
+      <p class="ver">v0.3</p>
       <input id="nameInput" type="text" maxlength="12" placeholder="输入你的昵称">
       <button id="btnLogin">进入游戏</button>
     </div>
@@ -63,9 +91,11 @@
     <div class="menu-box">
       <h1>奶蛙 vs 大狗</h1>
       <p class="sub" id="menuGreeting">欢迎！</p>
-      <p class="ver">v0.2</p>
+      <p class="ver">v0.3</p>
       <button id="btnStart">人机对战</button>
       <button id="btnVsP2">双人对战</button>
+      <button id="btnTrain">训练模式</button>
+      <button id="btnStats">成 绩</button>
       <button id="btnSettings">设 置</button>
       <button id="btnExit">退 出</button>
       <button id="btnChangeName" class="small-btn">修改昵称</button>
@@ -75,11 +105,12 @@
   <div id="readyScreen" class="overlay hidden">
     <div class="menu-box">
       <h2 id="readyTitle">准 备</h2>
-      <div class="setting-row">
-        <span>地图</span>
+      <div class="setting-row"><span>地图</span>
         <div class="stepper">
           <button id="mapGrass" class="map-btn">🌿 草地</button>
           <button id="mapSnow" class="map-btn">❄️ 雪地</button>
+          <button id="mapDusk" class="map-btn">🌇 黄昏</button>
+          <button id="mapNight" class="map-btn">🌙 夜晚</button>
         </div>
       </div>
       <div id="charRow" class="setting-row hidden">
@@ -90,6 +121,7 @@
         </div>
       </div>
       <p id="charHint" class="key-hint"></p>
+      <p id="charStatHint"></p>
       <button id="btnStartBattle">开始战斗</button>
       <button id="btnReadyBack" class="small-btn">返 回</button>
     </div>
@@ -100,6 +132,13 @@
       <h2>设 置</h2>
       <div class="setting-row"><span>命数</span><div class="stepper"><button id="livesMinus">−</button><span id="livesValue">3</span><button id="livesPlus">＋</button></div></div>
       <div class="setting-row"><span>音效</span><button id="soundToggle">开</button></div>
+      <div class="setting-row"><span>AI 难度</span>
+        <div class="stepper">
+          <button id="aiEasy" class="map-btn">简单</button>
+          <button id="aiNormal" class="map-btn">普通</button>
+          <button id="aiHard" class="map-btn">困难</button>
+        </div>
+      </div>
       <button id="btnKeys">键位设置</button>
       <button id="btnBack" class="small-btn">返 回</button>
     </div>
@@ -115,10 +154,25 @@
     </div>
   </div>
 
+  <div id="statsScreen" class="overlay hidden">
+    <div class="menu-box">
+      <h2>成 绩</h2>
+      <p class="stat-line" id="statGames">对局数：0</p>
+      <p class="stat-line" id="statWins">胜场：0</p>
+      <p class="stat-line" id="statMaxCombo">最高连击：0</p>
+      <p class="stat-line" id="statBestScore">最高单局分：0</p>
+      <p class="stat-line" id="statTotalScore">总得分：0</p>
+      <button id="btnResetStats" class="small-btn">清空成绩</button>
+      <button id="btnBack3" class="small-btn">返 回</button>
+    </div>
+  </div>
+
   <div id="pauseScreen" class="overlay hidden">
     <div class="menu-box">
       <h2>暂 停</h2>
+      <p id="pauseInfo"></p>
       <button id="btnResume">继续游戏</button>
+      <button id="btnFullscreen">切换全屏</button>
       <div class="range-row"><span>音乐音量</span><input id="bgmSlider" type="range" min="0" max="100" value="40"></div>
       <div class="range-row"><span>音效音量</span><input id="sfxSlider" type="range" min="0" max="100" value="80"></div>
       <button id="btnQuitBattle" class="small-btn">退 出</button>
@@ -143,37 +197,44 @@ const ctx = canvas.getContext('2d');
 /* ================= 常量 ================= */
 const W = 900, H = 500;
 const GROUND_Y = 460;
-const MAP_W = 1800;        // 地图总宽度（v0.2：900 的两倍）
+const MAP_W = 1800;
 const MARGIN = 50;
 const GRAVITY = 0.45;
-const JUMP_V = -12.25;
+const BASE_JUMP = -12.25;
 const ACCEL = 0.5;
 const FRICTION = 0.85;
 const ANIM_CYCLE = 12;
-const NORMAL_ATK  = { total: 18, activeStart: 0,  activeEnd: 10, dmg: 7,  range: 60,  cd: 36 };
-const SPECIAL_ATK = { total: 26, activeStart: 7,  activeEnd: 21, dmg: 15, range: 120, cd: 300 };
+const NORMAL_ATK  = { total: 18, activeStart: 0,  activeEnd: 10, range: 60 };
+const SPECIAL_ATK = { total: 26, activeStart: 7,  activeEnd: 21, range: 120 };
 const RESPAWN_TIME = 60;
 const RESPAWN_INVINCIBLE = 90;
-const MAX_HP = 100;
-const PICKUP_W = 30, PICKUP_H = 30, PICKUP_GROUND = 480, PICKUP_LIFE = 300; // 掉落物 5 秒（300帧）未拾取自动消失
-const BOMB_FUSE = 180;     // 炸弹拾取后 3 秒爆炸
-const BOMB_RADIUS = 90;    // 爆炸半径 = 地图宽度 10% / 2
-const BOMB_MAX_DMG = 70;
-const SHIELD_TIME = 300;   // 护盾 5 秒
-const CHAIN_TIME = 180;    // 锁链 3 秒
-const SKATE_TIME = 420;    // 滑板 7 秒
+const RESPAWN_GRACE = 30;      // 重生后 AI 不主动出招帧数
+const PICKUP_W = 30, PICKUP_H = 30, PICKUP_GROUND = 480, PICKUP_LIFE = 300;
+const BOMB_FUSE = 180;
+const BOMB_RADIUS = 90;
+const BOMB_MAX_DMG = 60;
+const SHIELD_TIME = 300;
+const CHAIN_TIME = 180;
+const SKATE_TIME = 420;
+const POWER_TIME = 480;        // ⚡双倍伤害 8 秒
+const COMBO_WINDOW = 240;      // 连击窗口 4 秒
+const AIR_JUMP_CD = 72;        // 二段跳冷却 1.2 秒
+const MAX_HP_LIMIT = 150;
 
 /* ================= 地图 ================= */
 const MAPS = {
   grass: { name: '🌿 草地', skyTop: '#8fd3ff', skyBottom: '#d5f0ff', ground: '#7ecb4f', groundEdge: '#5da83a', tuft: '#4f9a2f', speedMult: 1 },
   snow:  { name: '❄️ 雪地', skyTop: '#c3cede', skyBottom: '#eef3f8', ground: '#f2f6fa', groundEdge: '#d7e2ec', tuft: '#ffffff', snow: true, speedMult: 0.8 },
+  dusk:  { name: '🌇 黄昏', skyTop: '#f29e5a', skyBottom: '#e7c39a', ground: '#7a9468', groundEdge: '#5a7248', tuft: '#476039', speedMult: 1 },
+  night: { name: '🌙 夜晚', skyTop: '#141f3d', skyBottom: '#2a3f63', ground: '#2c3e50', groundEdge: '#1c2a3a', tuft: '#46688a', night: true, speedMult: 1 },
 };
 let currentMap = 'grass';
 
-/* ================= 角色素材 ================= */
+/* ================= 角色素材与差异化属性 ================= */
 const CHAR_SPECS = {
   frog: {
     folder: 'naiwa', color: '#6ecf4a', label: '奶蛙',
+    stats: { hp: 100, speedMult: 1.10, atkDmg: 8, atkCd: 33, spDmg: 22, spCd: 210, jumpMult: 1.05, trait: 'doubleJump' },
     frames: {
       '-1': { atk: 'latk', crouch: 'ld', special: 'lluf', jump: 'lskp', mv: ['lmv1', 'lmv2', 'lmv3'] },
       '1':  { atk: 'ratk', crouch: 'rd', special: 'rluf', jump: 'rskp', mv: ['rmv1', 'rmv2', 'rmv3'] },
@@ -181,6 +242,7 @@ const CHAR_SPECS = {
   },
   dog: {
     folder: 'dagou', color: '#ff8c00', label: '大狗',
+    stats: { hp: 120, speedMult: 0.92, atkDmg: 10, atkCd: 42, spDmg: 30, spCd: 360, jumpMult: 0.95, trait: 'heavyKnock' },
     frames: {
       '-1': { atk: 'LATK', crouch: 'LD', special: 'LLAF', jump: 'LSKP', mv: ['LMV1', 'LMV2', 'LMV3'] },
       '1':  { atk: 'RATK', crouch: 'RD', special: 'RLUF', jump: 'RSKP', mv: ['RMV1', 'RMV2', 'RMV3'] },
@@ -188,7 +250,6 @@ const CHAR_SPECS = {
   },
 };
 
-/* 预加载所有图片 */
 const images = {};
 let imagesLeft = 0;
 for (const spec of Object.values(CHAR_SPECS)) {
@@ -216,7 +277,6 @@ function loadNum(key, def) {
   try { const v = localStorage.getItem(key); const n = parseFloat(v); return isNaN(n) ? def : n; } catch (e) { return def; }
 }
 
-/* 键位绑定（localStorage.keybindings） */
 const ACTIONS = ['left', 'right', 'jump', 'crouch', 'attack', 'special', 'bomb'];
 const ACTION_LABEL = { left: '左移', right: '右移', jump: '跳跃', crouch: '下蹲', attack: '普攻', special: '大招', bomb: '放置炸弹' };
 const DEFAULT_BINDINGS = {
@@ -229,40 +289,83 @@ if (!bindings || !bindings.p1 || !bindings.p2) {
   saveJSON('keybindings', bindings);
 }
 
-/* 其它设置 */
-let settings = loadJSON('game_settings', { lives: 3, sound: true });
+let settings = loadJSON('game_settings', { lives: 3, sound: true, aiDifficulty: 'normal' });
+let stats = loadJSON('game_stats', { games: 0, wins: 0, maxCombo: 0, bestScore: 0, totalScore: 0 });
 let sfxVolume = loadNum('sfx_volume', 80);
 let bgmVolume = loadNum('bgm_volume', 40);
 let playerName = '';
 try { playerName = localStorage.getItem('player_name') || ''; } catch (e) { playerName = ''; }
 
-/* ================= 界面引用与状态 ================= */
+/* ================= 界面状态 ================= */
 const $ = (id) => document.getElementById(id);
-let screen = 'login';       // loginScreen / menuScreen / readyScreen / settingsScreen / keysScreen / game / farewellScreen
+let screen = 'login';
 let paused = false;
-let gameOver = null;        // null / 'win'(P1胜) / 'lose'(P2胜) / 'draw'
-let mode = 'vsAI';          // vsAI / vsP2
+let gameOver = null;
+let mode = 'vsAI';          // vsAI / vsP2 / train
 let readyMap = 'grass';
-let p1Char = 'frog';        // 双人模式下 P1 选择的角色，P2 自动为另一个
+let p1Char = 'frog';
 let p1 = null, p2 = null;
 let frame = 0;
+let matchScore = 0;
+let matchCombo = 0;         // 本局最高连击（用于统计）
+let matchTime = 0;          // 对局秒数
+let hitstop = 0;            // 顿帧
+let slowmo = 0;             // 慢动作帧
+let shake = 0;              // 屏幕震动
+let gameOverTimer = 0;      // 结算动画计时
 
-const OVERLAY_IDS = ['loginScreen', 'menuScreen', 'readyScreen', 'settingsScreen', 'keysScreen', 'pauseScreen', 'farewellScreen'];
+const OVERLAY_IDS = ['loginScreen', 'menuScreen', 'readyScreen', 'settingsScreen', 'keysScreen', 'statsScreen', 'pauseScreen', 'farewellScreen'];
 
 function showScreen(name) {
   for (const id of OVERLAY_IDS) $(id).classList.add('hidden');
   $('pauseBtn').classList.add('hidden');
+  $('trainResetBtn').classList.add('hidden');
   if (name === 'game') {
     $('pauseBtn').classList.remove('hidden');
+    if (mode === 'train') $('trainResetBtn').classList.remove('hidden');
   } else if (name !== 'none') {
     $(name).classList.remove('hidden');
   }
   screen = name;
+  updateTouchCtrl();
 }
 function setPaused(v) {
   paused = v;
   $('pauseBtn').classList.toggle('hidden', v);
   $('pauseScreen').classList.toggle('hidden', !v);
+  if (v) refreshPauseInfo();
+  updateTouchCtrl();
+}
+
+/* ================= 触屏虚拟按键（仅人机/训练模式 P1） ================= */
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+function updateTouchCtrl() {
+  const show = isTouchDevice && screen === 'game' && mode !== 'vsP2';
+  $('touchCtrl').classList.toggle('hidden', !show);
+}
+function bindTouchButton(btn) {
+  const act = btn.getAttribute('data-act');
+  const down = function (e) {
+    e.preventDefault();
+    const b = bindings.p1[act];
+    if (act === 'left' || act === 'right' || act === 'crouch') keys[b] = true;
+    else keyPressed[b] = true;
+  };
+  const up = function () {
+    const b = bindings.p1[act];
+    if (act === 'left' || act === 'right' || act === 'crouch') keys[b] = false;
+  };
+  btn.addEventListener('pointerdown', down);
+  btn.addEventListener('pointerup', up);
+  btn.addEventListener('pointerleave', up);
+  btn.addEventListener('pointercancel', up);
+  btn.addEventListener('touchstart', down, { passive: false });
+  btn.addEventListener('touchend', up);
+  btn.addEventListener('touchcancel', up);
+}
+{
+  const btns = document.querySelectorAll('#touchCtrl .tbtn');
+  for (const b of btns) bindTouchButton(b);
 }
 
 /* ================= 界面逻辑 ================= */
@@ -277,36 +380,71 @@ function showMenu() {
   showScreen('menuScreen');
 }
 function showReady() {
-  $('readyTitle').textContent = mode === 'vsAI' ? '人机对战 · 准备' : '双人对战 · 准备';
-  $('charRow').classList.toggle('hidden', mode === 'vsAI');
+  $('readyTitle').textContent = mode === 'vsAI' ? '人机对战 · 准备' : (mode === 'vsP2' ? '双人对战 · 准备' : '训练模式 · 准备');
+  $('charRow').classList.toggle('hidden', mode !== 'vsP2');
   p1Char = 'frog';
   updateReadyUI();
   showScreen('readyScreen');
 }
+function charStatText(ch) {
+  const s = CHAR_SPECS[ch].stats;
+  let t = '速度 ' + (s.speedMult >= 1 ? '+' : '') + Math.round((s.speedMult - 1) * 100) + '%　血量 ' + s.hp + '　普攻 ' + s.atkDmg + '　大招 ' + s.spDmg;
+  if (s.trait === 'doubleJump') t += '　特性：空中二段跳';
+  if (s.trait === 'heavyKnock') t += '　特性：攻击击退强化';
+  return t;
+}
 function updateReadyUI() {
   $('mapGrass').classList.toggle('selected', readyMap === 'grass');
   $('mapSnow').classList.toggle('selected', readyMap === 'snow');
+  $('mapDusk').classList.toggle('selected', readyMap === 'dusk');
+  $('mapNight').classList.toggle('selected', readyMap === 'night');
   $('charFrog').classList.toggle('selected', p1Char === 'frog');
   $('charDog').classList.toggle('selected', p1Char === 'dog');
   if (mode === 'vsP2') {
-    const p2Char = p1Char === 'frog' ? 'dog' : 'frog';
-    $('charHint').textContent = 'P1：' + CHAR_SPECS[p1Char].label + '　P2：' + CHAR_SPECS[p2Char].label;
+    const p2Ch = p1Char === 'frog' ? 'dog' : 'frog';
+    $('charHint').textContent = 'P1：' + CHAR_SPECS[p1Char].label + '　P2：' + CHAR_SPECS[p2Ch].label;
+    $('charStatHint').textContent = 'P1 ' + charStatText(p1Char) + '\nP2 ' + charStatText(p2Ch);
+  } else if (mode === 'train') {
+    $('charHint').textContent = '玩家：奶蛙　对手：木桩（可重置血量）';
+    $('charStatHint').textContent = charStatText('frog');
   } else {
     $('charHint').textContent = '玩家：奶蛙　对手：大狗（AI）';
+    $('charStatHint').textContent = charStatText('frog');
   }
 }
 function showSettings() {
   $('livesValue').textContent = settings.lives;
   $('soundToggle').textContent = settings.sound ? '开' : '关';
+  updateAISettingsUI();
   showScreen('settingsScreen');
+}
+function updateAISettingsUI() {
+  $('aiEasy').classList.toggle('selected', settings.aiDifficulty === 'easy');
+  $('aiNormal').classList.toggle('selected', settings.aiDifficulty === 'normal');
+  $('aiHard').classList.toggle('selected', settings.aiDifficulty === 'hard');
 }
 function showKeysScreen() {
   renderKeysTable();
   showScreen('keysScreen');
 }
+function showStatsScreen() {
+  $('statGames').textContent = '对局数：' + stats.games;
+  $('statWins').textContent = '胜场：' + stats.wins;
+  $('statMaxCombo').textContent = '最高连击：' + stats.maxCombo;
+  $('statBestScore').textContent = '最高单局分：' + stats.bestScore;
+  $('statTotalScore').textContent = '总得分：' + stats.totalScore;
+  showScreen('statsScreen');
+}
 function exitToMenu() {
   setPaused(false);
   showMenu();
+}
+function refreshPauseInfo() {
+  const mins = Math.floor(matchTime / 60);
+  const secs = Math.floor(matchTime % 60);
+  $('pauseInfo').textContent = '对局时间 ' + mins + ':' + (secs < 10 ? '0' : '') + secs +
+    '　' + (p1 ? p1.label + ' ' + p1.hp + '/' + p1.maxHp + ' ❤×' + p1.lives : '') +
+    '　' + (p2 ? p2.label + ' ' + p2.hp + '/' + p2.maxHp + ' ❤×' + p2.lives : '');
 }
 
 /* 按钮绑定 */
@@ -314,6 +452,8 @@ $('btnLogin').addEventListener('click', doLogin);
 $('nameInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
 $('btnStart').addEventListener('click', function () { mode = 'vsAI'; showReady(); });
 $('btnVsP2').addEventListener('click', function () { mode = 'vsP2'; showReady(); });
+$('btnTrain').addEventListener('click', function () { mode = 'train'; showReady(); });
+$('btnStats').addEventListener('click', showStatsScreen);
 $('btnSettings').addEventListener('click', showSettings);
 $('btnExit').addEventListener('click', function () {
   try { window.close(); } catch (e) { /* 忽略 */ }
@@ -323,6 +463,8 @@ $('btnBackMenu').addEventListener('click', showMenu);
 $('btnChangeName').addEventListener('click', function () { $('nameInput').value = playerName; showScreen('loginScreen'); });
 $('mapGrass').addEventListener('click', function () { readyMap = 'grass'; updateReadyUI(); });
 $('mapSnow').addEventListener('click', function () { readyMap = 'snow'; updateReadyUI(); });
+$('mapDusk').addEventListener('click', function () { readyMap = 'dusk'; updateReadyUI(); });
+$('mapNight').addEventListener('click', function () { readyMap = 'night'; updateReadyUI(); });
 $('charFrog').addEventListener('click', function () { p1Char = 'frog'; updateReadyUI(); });
 $('charDog').addEventListener('click', function () { p1Char = 'dog'; updateReadyUI(); });
 $('btnStartBattle').addEventListener('click', function () { currentMap = readyMap; startBattle(); });
@@ -334,17 +476,33 @@ $('soundToggle').addEventListener('click', function () {
   $('soundToggle').textContent = settings.sound ? '开' : '关';
   saveJSON('game_settings', settings);
 });
+$('aiEasy').addEventListener('click', function () { settings.aiDifficulty = 'easy'; saveJSON('game_settings', settings); updateAISettingsUI(); });
+$('aiNormal').addEventListener('click', function () { settings.aiDifficulty = 'normal'; saveJSON('game_settings', settings); updateAISettingsUI(); });
+$('aiHard').addEventListener('click', function () { settings.aiDifficulty = 'hard'; saveJSON('game_settings', settings); updateAISettingsUI(); });
 $('btnKeys').addEventListener('click', showKeysScreen);
 $('btnBack').addEventListener('click', showMenu);
 $('btnBack2').addEventListener('click', showSettings);
+$('btnBack3').addEventListener('click', showMenu);
+$('btnResetStats').addEventListener('click', function () {
+  stats = { games: 0, wins: 0, maxCombo: 0, bestScore: 0, totalScore: 0 };
+  saveJSON('game_stats', stats);
+  showStatsScreen();
+});
 $('btnResetKeys').addEventListener('click', function () {
   bindings = JSON.parse(JSON.stringify(DEFAULT_BINDINGS));
   saveJSON('keybindings', bindings);
   renderKeysTable();
 });
 $('btnResume').addEventListener('click', function () { setPaused(false); });
+$('btnFullscreen').addEventListener('click', function () {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen();
+});
 $('btnQuitBattle').addEventListener('click', exitToMenu);
 $('pauseBtn').addEventListener('click', function () { if (!gameOver) setPaused(true); });
+$('trainResetBtn').addEventListener('click', function () {
+  if (p2) { p2.hp = p2.maxHp; p2.invincible = 0; p2.dead = false; p2.hitstun = 0; }
+});
 $('bgmSlider').addEventListener('input', function () { setBgmVolume(parseInt(this.value, 10)); });
 $('sfxSlider').addEventListener('input', function () { setSfxVolume(parseInt(this.value, 10)); });
 
@@ -364,18 +522,21 @@ function setBgmVolume(v) {
 }
 
 /* ================= 键位设置界面 ================= */
-let pendingKey = null; // {controls, action}
+let pendingKey = null;
 function keyDisplay(k) {
   const map = { arrowleft: '←', arrowright: '→', arrowup: '↑', arrowdown: '↓', space: '空格' };
   return map[k] || (k.length === 1 ? k.toUpperCase() : k);
 }
 function renderKeysTable() {
   const wrap = $('keysTableWrap');
+  // 统计每个按键被占用的次数，用于冲突高亮
+  const usage = {};
+  for (const cp of ['p1', 'p2']) for (const a of ACTIONS) usage[bindings[cp][a]] = (usage[bindings[cp][a]] || 0) + 1;
   let html = '<table id="keysTable"><tr><td></td><td>P1</td><td>P2</td></tr>';
   for (const a of ACTIONS) {
     html += '<tr><td class="action-name">' + ACTION_LABEL[a] + '</td>';
-    html += '<td><button data-cp="p1" data-action="' + a + '">' + keyDisplay(bindings.p1[a]) + '</button></td>';
-    html += '<td><button data-cp="p2" data-action="' + a + '">' + keyDisplay(bindings.p2[a]) + '</button></td></tr>';
+    html += '<td><button data-cp="p1" data-action="' + a + '"' + (usage[bindings.p1[a]] > 1 ? ' class="conflict"' : '') + '>' + keyDisplay(bindings.p1[a]) + '</button></td>';
+    html += '<td><button data-cp="p2" data-action="' + a + '"' + (usage[bindings.p2[a]] > 1 ? ' class="conflict"' : '') + '>' + keyDisplay(bindings.p2[a]) + '</button></td></tr>';
   }
   html += '</table>';
   wrap.innerHTML = html;
@@ -407,37 +568,29 @@ const keys = {};
 const keyPressed = {};
 document.addEventListener('keydown', function (e) {
   const k = normalizeKey(e.key);
-
-  // 键位设置界面：捕获新按键
   if (screen === 'keysScreen' && pendingKey) {
     e.preventDefault();
     if (k === 'escape') {
-      pendingKey = null;
-      renderKeysTable();
+      pendingKey = null; renderKeysTable();
       $('keyHint').textContent = '已取消修改';
       return;
     }
     if (isKeyUsed(k, pendingKey)) {
-      pendingKey = null;
-      renderKeysTable();
+      pendingKey = null; renderKeysTable();
       $('keyHint').textContent = '该按键已被其他动作使用，请换一个';
       return;
     }
     bindings[pendingKey.controls][pendingKey.action] = k;
     saveJSON('keybindings', bindings);
-    pendingKey = null;
-    renderKeysTable();
+    pendingKey = null; renderKeysTable();
     $('keyHint').textContent = '键位已更新';
     return;
   }
-
-  // 阻止方向键/空格滚动页面
   if (k === 'space' || ['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].indexOf(k) >= 0) e.preventDefault();
   initAudio();
   if (e.repeat) return;
   keyPressed[k] = true;
   keys[k] = true;
-
   if (screen === 'loginScreen') {
     if (k === 'enter') doLogin();
   } else if (screen === 'game') {
@@ -452,7 +605,6 @@ document.addEventListener('keydown', function (e) {
 document.addEventListener('keyup', function (e) { keys[normalizeKey(e.key)] = false; });
 window.addEventListener('blur', function () { for (const k in keys) keys[k] = false; });
 
-/* 根据键位绑定读取某玩家的输入 */
 function getFighterInput(f) {
   const b = bindings[f.controls];
   let move = 0;
@@ -472,12 +624,14 @@ function getFighterInput(f) {
 /* ================= Fighter ================= */
 function makeFighter(char, controls, x) {
   const spec = CHAR_SPECS[char];
+  const hp = spec.stats.hp;
   return {
     char: char,
-    controls: controls,          // 'p1' / 'p2' / 'ai'
+    controls: controls,          // 'p1' / 'p2' / 'ai' / 'dummy'
     folder: spec.folder,
     color: spec.color,
     label: spec.label,
+    stats: spec.stats,
     x: x, y: GROUND_Y,
     homeX: x,
     homeFacing: x < MAP_W / 2 ? 1 : -1,
@@ -487,9 +641,10 @@ function makeFighter(char, controls, x) {
     onGround: true,
     crouching: false,
     animTimer: 0,
-    hp: MAX_HP, maxHp: MAX_HP,
+    hp: hp, maxHp: hp,
     lives: settings.lives, maxLives: settings.lives,
     dead: false, deadTimer: 0,
+    dummy: controls === 'dummy',
     atkType: null,
     atkStart: 0,
     hitDone: false,
@@ -498,18 +653,24 @@ function makeFighter(char, controls, x) {
     specialCd: 0,
     hitstun: 0,
     invincible: 0,
-    shieldTimer: 0,   // 护盾
-    skateTimer: 0,    // 滑板
-    chainTimer: 0,    // 锁链
-    hasBomb: false,   // 是否持有炸弹
-    bombTimer: 0,     // 炸弹倒计时
+    graceTimer: 0,
+    shieldTimer: 0,
+    skateTimer: 0,
+    chainTimer: 0,
+    powerTimer: 0,
+    hasBomb: false,
+    bombTimer: 0,
+    combo: 0,
+    comboTimer: 0,
+    jumpsUsed: 0,
+    jumpCd: 0,
+    state: 'idle',
     aiState: 'idle',
     aiJumped: false,
   };
 }
 function frameSet(f) { return CHAR_SPECS[f.char].frames[String(f.facing)]; }
 
-/* 根据状态选择图片帧 */
 function currentFrameName(f) {
   const s = frameSet(f);
   if (f.atkType === 'special') return s.special;
@@ -525,21 +686,22 @@ function currentFrameName(f) {
   return s.mv[0];
 }
 
-/* 有效水平加速度：基础 × 地图系数（雪地0.8） × 滑板（×2） */
+/* 有效水平加速度：基础 × 角色 × 地图 × 滑板 */
 function effAccel(f) {
-  let a = ACCEL * MAPS[currentMap].speedMult;
+  let a = ACCEL * f.stats.speedMult * MAPS[currentMap].speedMult;
   if (f.skateTimer > 0) a *= 2;
   return a;
 }
 
 /* ================= 攻击 ================= */
 function startAttack(f, isSpecial) {
+  const s = f.stats;
   if (isSpecial) {
     f.atkType = 'special';
-    f.specialCd = SPECIAL_ATK.cd;
+    f.specialCd = s.spCd;
   } else {
     f.atkType = 'normal';
-    f.attackCd = NORMAL_ATK.cd;
+    f.attackCd = s.atkCd;
   }
   f.atkStart = frame;
   f.hitDone = false;
@@ -563,11 +725,14 @@ function updateFighter(f, input) {
   f.attackCd = Math.max(0, f.attackCd - 1);
   f.specialCd = Math.max(0, f.specialCd - 1);
   f.invincible = Math.max(0, f.invincible - 1);
+  f.graceTimer = Math.max(0, f.graceTimer - 1);
+  f.jumpCd = Math.max(0, f.jumpCd - 1);
   if (f.shieldTimer > 0) f.shieldTimer--;
   if (f.skateTimer > 0) f.skateTimer--;
   if (f.chainTimer > 0) f.chainTimer--;
+  if (f.powerTimer > 0) f.powerTimer--;
+  if (f.comboTimer > 0) { f.comboTimer--; if (f.comboTimer <= 0) f.combo = 0; }
 
-  // 炸弹倒计时：拾取后 3 秒自动爆炸（未放置则在携带者处爆炸）
   if (f.hasBomb) {
     f.bombTimer--;
     if (f.bombTimer <= 0) {
@@ -586,10 +751,10 @@ function updateFighter(f, input) {
       addScreenFlash('special');
       SFX.special();
       spawnSpecialArea(f);
+      shake = Math.max(shake, 0.5);
     }
   }
 
-  // 硬直或攻击中锁定操作
   if (f.hitstun > 0 || attacking) {
     f.hitstun = Math.max(0, f.hitstun - 1);
     input = { move: 0, jump: false, crouch: false, attack: false, special: false, bomb: false, face: undefined };
@@ -611,17 +776,26 @@ function updateFighter(f, input) {
   f.moveDir = (!f.crouching && !attacking && f.chainTimer <= 0) ? input.move : 0;
   f.vx += f.moveDir * effAccel(f);
 
-  if (input.jump && f.onGround && !f.crouching && !attacking && f.chainTimer <= 0) {
-    f.vy = JUMP_V;
-    f.onGround = false;
+  // 跳跃：地面跳 + 奶蛙二段跳
+  if (input.jump && !f.crouching && !attacking && f.chainTimer <= 0) {
+    if (f.onGround) {
+      f.vy = BASE_JUMP * f.stats.jumpMult;
+      f.onGround = false;
+      f.jumpsUsed = 1;
+    } else if (f.stats.trait === 'doubleJump' && f.jumpsUsed < 2 && f.jumpCd <= 0) {
+      f.vy = BASE_JUMP * f.stats.jumpMult * 0.9;
+      f.jumpsUsed = 2;
+      f.jumpCd = AIR_JUMP_CD;
+      spawnParticle(f.x, f.y - 40, '#ffffff');
+    }
   }
+  if (f.onGround) f.jumpsUsed = 0;
 
   if (!attacking) {
     if (input.attack && f.attackCd === 0) startAttack(f, false);
     else if (input.special && f.specialCd === 0 && f.chainTimer <= 0) startAttack(f, true);
   }
 
-  // 放置炸弹
   if (input.bomb && f.hasBomb && !f.dead) {
     bombs.push({ x: f.x, y: f.y - 60, timer: f.bombTimer });
     f.hasBomb = false;
@@ -638,6 +812,16 @@ function updateFighter(f, input) {
   if (f.x > MAP_W - MARGIN) { f.x = MAP_W - MARGIN; if (f.vx > 0) f.vx = 0; }
   if (f.y >= GROUND_Y) { f.y = GROUND_Y; f.vy = 0; f.onGround = true; }
   else f.onGround = false;
+
+  // 状态标签（便于调试/展示）
+  if (f.dead) f.state = 'dead';
+  else if (f.hitstun > 0) f.state = 'hit';
+  else if (f.atkType === 'special') f.state = 'special';
+  else if (f.atkType === 'normal') f.state = 'attack';
+  else if (!f.onGround) f.state = 'air';
+  else if (f.crouching) f.state = 'crouch';
+  else if (Math.abs(f.vx) > 0.2) f.state = 'move';
+  else f.state = 'idle';
 }
 
 function updateDead(f) {
@@ -653,19 +837,26 @@ function updateDead(f) {
     f.atkType = null;
     f.facing = f.homeFacing;
     f.invincible = RESPAWN_INVINCIBLE;
-    f.shieldTimer = 0; f.skateTimer = 0; f.chainTimer = 0; f.hasBomb = false;
+    f.graceTimer = RESPAWN_GRACE;
+    f.shieldTimer = 0; f.skateTimer = 0; f.chainTimer = 0; f.powerTimer = 0; f.hasBomb = false;
     spawnRespawnParticles(f.x, GROUND_Y - 60);
   }
 }
 
-/* ================= AI（人机模式的大狗） ================= */
+/* ================= AI（人机模式，带难度分级） ================= */
+const AI_PARAMS = {
+  easy:   { interval: [25, 35], atkDist: 45, spMult: 0.5, dodge: 0.15 },
+  normal: { interval: [12, 20], atkDist: 65, spMult: 1.0, dodge: 0.35 },
+  hard:   { interval: [6, 10],  atkDist: 80, spMult: 1.6, dodge: 0.55 },
+};
 let aiTimer = 0;
 function updateAI() {
   const e = p2, p = p1;
+  const P = AI_PARAMS[settings.aiDifficulty] || AI_PARAMS.normal;
   if (e.hitstun > 0 || e.atkType || e.dead) {
     return { move: 0, jump: false, crouch: false, attack: false, special: false, bomb: false, face: e.facing };
   }
-  if (p.dead) {
+  if (p.dead || p.graceTimer > 0) {
     return { move: 0, jump: false, crouch: false, attack: false, special: false, bomb: false, face: e.facing };
   }
   const dx = p.x - e.x;
@@ -674,10 +865,10 @@ function updateAI() {
 
   aiTimer--;
   if (aiTimer <= 0) {
-    aiTimer = 12 + Math.floor(Math.random() * 9);
+    aiTimer = P.interval[0] + Math.floor(Math.random() * (P.interval[1] - P.interval[0] + 1));
     e.aiJumped = false;
     const r = Math.random();
-    if (dist < 65) {
+    if (dist < P.atkDist) {
       if (r < 0.50) e.aiState = 'attack';
       else if (r < 0.70) e.aiState = 'jump';
       else if (r < 0.90) e.aiState = 'retreat';
@@ -704,13 +895,13 @@ function updateAI() {
 
   switch (e.aiState) {
     case 'attack':
-      if (dist < 65 && e.attackCd === 0) attack = true;
+      if (dist < P.atkDist && e.attackCd === 0) attack = true;
       else if (dist > 95) move = dir;
       else if (dist < 40) move = -dir;
       break;
     case 'chase':
       if (dist > 35) move = dir;
-      if (dist < 65 && e.attackCd === 0) attack = true;
+      if (dist < P.atkDist && e.attackCd === 0) attack = true;
       break;
     case 'retreat':
       if (dist < 280) move = -dir;
@@ -725,16 +916,17 @@ function updateAI() {
   }
 
   if (!attack && e.specialCd === 0 && dist < 150 && p.invincible <= 0) {
-    let chance = 0.08;
-    if (p.hp < p.maxHp * 0.5) chance += 0.12;
-    if (dist < 130) chance += 0.15;
-    if (dist < 70) chance += 0.10;
+    let chance = 0.08 * P.spMult;
+    if (p.hp < p.maxHp * 0.5) chance += 0.12 * P.spMult;
+    if (dist < 130) chance += 0.15 * P.spMult;
+    if (dist < 70) chance += 0.10 * P.spMult;
     if (Math.random() < chance) special = true;
   }
-  if (p.atkType && dist < 95 && e.onGround && Math.random() < 0.35) {
+  if (p.atkType && dist < 95 && e.onGround && Math.random() < P.dodge) {
     jump = true; attack = false; special = false;
   }
   if (p.invincible > 0 && dist < 65 && Math.random() < 0.5) attack = false;
+  if (p.crouching && settings.aiDifficulty === 'hard' && attack && Math.random() < 0.6) attack = false;
 
   return { move: move, jump: jump, crouch: false, attack: attack, special: special, bomb: false, face: dir };
 }
@@ -750,41 +942,59 @@ function resolveAttack(atk, def) {
   if (overlap(ab, db)) {
     if (def.invincible > 0) return;
     atk.hitDone = true;
-    applyDamage(def, cfg.dmg, { attacker: atk });
+    let dmg = atk.atkType === 'normal' ? atk.stats.atkDmg : atk.stats.spDmg;
+    if (atk.powerTimer > 0) dmg *= 2; // ⚡双倍伤害
+    const hit = applyDamage(def, dmg, { attacker: atk });
+    if (hit) {
+      atk.combo++;
+      atk.comboTimer = COMBO_WINDOW;
+      matchCombo = Math.max(matchCombo, atk.combo);
+      if (atk.combo > 5) SFX.combo();
+    }
   }
 }
 
-/* 统一伤害入口：攻击、炸弹爆炸都走这里（护盾/蹲防/无敌/死亡统一处理） */
+/* 统一伤害入口（护盾/蹲防/无敌/木桩/死亡统一处理） */
 function applyDamage(def, dmg, opts) {
   opts = opts || {};
   if (def.dead || def.hp <= 0) return false;
   if (def.invincible > 0) return false;
-  if (def.shieldTimer > 0) {          // 护盾：免疫本次伤害并消失
+  if (def.shieldTimer > 0) {
     def.shieldTimer = 0;
     SFX.defend();
     spawnShieldBreak(def.x, def.y - 70);
-    addDamageNumber(def.x, def.y - 100, '🛡', false);
+    addDamageNumber(def.x, def.y - 100, '🛡', 'shield');
     return false;
   }
-  if (def.crouching) {                // 蹲防：只受 20% 伤害
+  if (def.crouching) {
     const d = Math.max(1, Math.round(dmg * 0.2));
     def.hp = Math.max(0, def.hp - d);
     SFX.defend();
-    addDamageNumber(def.x + (Math.random() * 40 - 20), def.y - 95, d, true);
+    addDamageNumber(def.x + (Math.random() * 40 - 20), def.y - 95, d, 'defend');
     spawnDeflectParticles(def.x - (opts.attacker ? opts.attacker.facing : 1) * 30, def.y - 70);
+    addScore(10);
   } else {
     dmg = Math.max(1, Math.round(dmg));
     def.hp = Math.max(0, def.hp - dmg);
     SFX.hit();
     addScreenFlash('hit');
-    addDamageNumber(def.x + (Math.random() * 40 - 20), def.y - 95, dmg, false);
+    const cls = opts.attacker ? (opts.attacker.atkType === 'special' ? 'special' : 'hit') : 'bomb';
+    addDamageNumber(def.x + (Math.random() * 40 - 20), def.y - 95, dmg, cls);
     spawnHitParticles(def.x - (opts.attacker ? opts.attacker.facing : 1) * 30, def.y - 75);
-    def.hitstun = 12;
-    def.invincible = 42;
-    def.atkType = null;
-    if (opts.attacker) def.vx += opts.attacker.facing * 1.5;
+    addScore(10);
+    // 顿帧 + 震动（打击感）
+    hitstop = Math.max(hitstop, opts.attacker ? (opts.attacker.atkType === 'special' ? 4 : 2) : 4);
+    shake = Math.max(shake, opts.attacker ? 0.5 : 0.8);
+    if (!def.dummy) {
+      def.hitstun = 12;
+      def.invincible = 42;
+      def.atkType = null;
+    }
+    const knock = opts.attacker ? opts.attacker.facing * (opts.attacker.stats.trait === 'heavyKnock' ? 2.5 : 1.5) : (opts.knock || 0);
+    def.vx += knock;
   }
-  if (def.hp <= 0) onDeath(def);
+  if (def.hp <= 0 && !def.dummy) onDeath(def);
+  else if (def.hp <= 0) { def.hp = 1; } // 木桩不死亡，保底 1 血
   return true;
 }
 
@@ -797,9 +1007,14 @@ function onDeath(f) {
   f.hitstun = 0;
   f.invincible = 0;
   f.vx = 0; f.vy = 0;
-  f.shieldTimer = 0; f.skateTimer = 0; f.chainTimer = 0; f.hasBomb = false;
+  f.shieldTimer = 0; f.skateTimer = 0; f.chainTimer = 0; f.powerTimer = 0; f.hasBomb = false;
   spawnDeathParticles(f.x, f.y - 70);
   addScreenFlash('hit');
+  addDamageNumber(f.x, f.y - 140, '击倒！', 'banner');
+  hitstop = Math.max(hitstop, 6);
+  slowmo = 18; // 0.3 秒慢动作
+  shake = Math.max(shake, 0.9);
+  addScore(100);
   if (f.lives <= 0) checkGameOver();
 }
 
@@ -812,14 +1027,22 @@ function checkGameOver() {
   else if (p1Out) next = 'lose';
   if (next && next !== gameOver) {
     gameOver = next;
-    if (next === 'win') SFX.win();
+    gameOverTimer = 0;
+    if (next === 'win') { SFX.win(); addScore(500); stats.wins++; }
     else if (next === 'lose') SFX.lose();
     else SFX.draw();
+    if (mode !== 'train') {
+      stats.games++;
+      stats.maxCombo = Math.max(stats.maxCombo, matchCombo);
+      stats.bestScore = Math.max(stats.bestScore, matchScore);
+      stats.totalScore += matchScore;
+      saveJSON('game_stats', stats);
+    }
   }
 }
 
 /* ================= 掉落物系统 ================= */
-const PICKUP_TYPES = ['bomb', 'shield', 'heart', 'health', 'chain', 'skateboard'];
+const PICKUP_TYPES = ['bomb', 'shield', 'heart', 'health', 'chain', 'skateboard', 'power', 'coin'];
 const PICKUP_INFO = {
   bomb:       { color: '#e74c3c', name: '💣 炸弹' },
   shield:     { color: '#ffd700', name: '🛡 护盾' },
@@ -827,26 +1050,27 @@ const PICKUP_INFO = {
   health:     { color: '#2ecc71', name: '💉 血包' },
   chain:      { color: '#95a5a6', name: '⛓ 锁链' },
   skateboard: { color: '#4aa3ff', name: '🛹 滑板' },
+  power:      { color: '#e0c341', name: '⚡ 双倍' },
+  coin:       { color: '#ffd700', name: '💰 金币' },
 };
 let pickup = null;
-let pickupTimer = 600; // 帧
-let bombs = [];        // 已放置的炸弹 {x,y,timer}
-let explosions = [];   // 爆炸特效 {x,y,life,maxLife}
+let pickupTimer = 600;
+let bombs = [];
+let explosions = [];
 
 function randPickupInterval() {
-  return 600 + Math.floor(Math.random() * 600); // 10~20 秒
+  return 600 + Math.floor(Math.random() * 600);
 }
 function spawnPickup() {
   pickup = {
     type: PICKUP_TYPES[Math.floor(Math.random() * PICKUP_TYPES.length)],
     x: 50 + Math.random() * (MAP_W - 100),
     y: -30,
-    state: 'falling',   // falling -> ground
-    life: PICKUP_LIFE,  // 落地后 5 秒自动消失
+    state: 'falling',
+    life: PICKUP_LIFE,
   };
 }
 function pickupBox() {
-  // 拾取判定比绘制区域更高：角色脚底(460)与掉落物落点(480)之间留出重合范围
   return { minX: pickup.x - PICKUP_W / 2, maxX: pickup.x + PICKUP_W / 2, minY: pickup.y - PICKUP_H, maxY: pickup.y + PICKUP_H / 2 };
 }
 function updatePickup() {
@@ -862,7 +1086,6 @@ function updatePickup() {
     pickup.life--;
     if (pickup.life <= 0) { pickup = null; pickupTimer = randPickupInterval(); return; }
   }
-  // 拾取检测
   for (const f of [p1, p2]) {
     if (f.dead) continue;
     if (overlap(bodyBox(f), pickupBox())) {
@@ -875,28 +1098,17 @@ function updatePickup() {
 }
 function applyPickup(f, type) {
   SFX.pickup();
-  addDamageNumber(f.x, f.y - 110, PICKUP_INFO[type].name, false);
+  addDamageNumber(f.x, f.y - 110, PICKUP_INFO[type].name, 'pickup');
+  addScore(20);
   switch (type) {
-    case 'bomb':
-      f.hasBomb = true;
-      f.bombTimer = BOMB_FUSE;
-      break;
-    case 'shield':
-      f.shieldTimer = SHIELD_TIME;
-      break;
-    case 'heart':
-      f.lives = Math.min(9, f.lives + 1);
-      f.maxLives = Math.max(f.maxLives, f.lives);
-      break;
-    case 'health':
-      f.hp = Math.min(f.maxHp, f.hp + 30);
-      break;
-    case 'chain':
-      f.chainTimer = CHAIN_TIME;
-      break;
-    case 'skateboard':
-      f.skateTimer = SKATE_TIME;
-      break;
+    case 'bomb': f.hasBomb = true; f.bombTimer = BOMB_FUSE; break;
+    case 'shield': f.shieldTimer = SHIELD_TIME; break;
+    case 'heart': f.lives = Math.min(9, f.lives + 1); f.maxLives = Math.max(f.maxLives, f.lives); break;
+    case 'health': f.hp = Math.min(f.maxHp, f.hp + 30); break;
+    case 'chain': f.chainTimer = CHAIN_TIME; break;
+    case 'skateboard': f.skateTimer = SKATE_TIME; break;
+    case 'power': f.powerTimer = POWER_TIME; break;
+    case 'coin': addScore(100); break;
   }
 }
 
@@ -919,14 +1131,15 @@ function explode(x, y) {
   explosions.push({ x: x, y: y, life: 45, maxLife: 45 });
   SFX.explosion();
   addScreenFlash('hit');
+  shake = Math.max(shake, 0.8);
   for (const f of [p1, p2]) {
     if (f.dead) continue;
     const dx = Math.abs(f.x - x);
     if (dx > BOMB_RADIUS) continue;
     const bb = bodyBox(f);
-    if (bb.maxY < y - 90 || bb.minY > y + 20) continue; // 垂直范围粗判
+    if (bb.maxY < y - 90 || bb.minY > y + 20) continue;
     let dmg = BOMB_MAX_DMG * (1 - dx / BOMB_RADIUS);
-    if (!f.onGround) dmg *= 0.7; // 跳跃状态减免 30%
+    if (!f.onGround) dmg *= 0.7;
     applyDamage(f, dmg, { knock: Math.sign(f.x - x) * 2 });
   }
 }
@@ -968,8 +1181,10 @@ function spawnDeathParticles(x, y) {
 function spawnRespawnParticles(x, y) {
   for (let i = 0; i < 16; i++) spawnParticle(x, y, Math.random() < 0.5 ? '#6ec6ff' : '#ffffff');
 }
-function addDamageNumber(x, y, amount, isDefend) {
-  damageNumbers.push({ x: x, y: y, vy: -2.4, life: 45, maxLife: 45, text: String(amount), isDefend: isDefend });
+const DMG_COLORS = { hit: '#ff4d4d', special: '#ffd700', bomb: '#ff9f43', defend: '#7fd4ff', shield: '#ffe066', pickup: '#7dff9e', banner: '#ffd700' };
+function addDamageNumber(x, y, text, cls) {
+  const big = cls === 'banner';
+  damageNumbers.push({ x: x, y: y, vy: big ? -1.2 : -2.4, life: big ? 70 : 45, maxLife: big ? 70 : 45, text: String(text), cls: cls, big: big });
 }
 function addScreenFlash(type) {
   flashes.push({ type: type, life: type === 'special' ? 18 : 10, maxLife: type === 'special' ? 18 : 10 });
@@ -1012,17 +1227,29 @@ function updateViewport() {
 }
 function w2sX(x) { return (x - viewport.offsetX) * viewport.scale; }
 
+/* ================= 计分 ================= */
+function addScore(v) {
+  if (mode === 'train') return;
+  matchScore += v;
+}
+
 /* ================= 战斗 ================= */
 function startBattle() {
   if (mode === 'vsAI') {
     p1 = makeFighter('frog', 'p1', 200);
     p2 = makeFighter('dog', 'ai', 1600);
-  } else {
+  } else if (mode === 'vsP2') {
     p1 = makeFighter(p1Char, 'p1', 200);
     p2 = makeFighter(p1Char === 'frog' ? 'dog' : 'frog', 'p2', 1600);
+  } else { // 训练模式：奶蛙 vs 木桩
+    p1 = makeFighter('frog', 'p1', 200);
+    p2 = makeFighter('dog', 'dummy', 1000);
+    p2.hp = 999; p2.maxHp = 999; p2.lives = 999; p2.dummy = true;
+    p1.lives = 999; p1.maxLives = 999;
   }
   gameOver = null;
   paused = false;
+  hitstop = 0; slowmo = 0; shake = 0; gameOverTimer = 0;
   particles.length = 0;
   damageNumbers.length = 0;
   specialAreas.length = 0;
@@ -1033,13 +1260,15 @@ function startBattle() {
   pickupTimer = randPickupInterval();
   frame = 0;
   aiTimer = 0;
+  matchScore = 0;
+  matchCombo = 0;
+  matchTime = 0;
   acc = 0;
   setPaused(false);
   $('bgmSlider').value = bgmVolume;
   $('sfxSlider').value = sfxVolume;
   showScreen('game');
 }
-/* 页面加载时先建好两个角色，避免绘制引用空值 */
 p1 = makeFighter('frog', 'p1', 200);
 p2 = makeFighter('dog', 'ai', 1600);
 
@@ -1047,13 +1276,17 @@ function update() {
   frame++;
   if (screen === 'game' && !paused && !gameOver) {
     updateViewport();
-    const in1 = getFighterInput(p1);
-    const in2 = p2.controls === 'ai' ? updateAI() : getFighterInput(p2);
+    matchTime = frame / 60;
+    let in1 = getFighterInput(p1);
+    let in2 = null;
+    if (p2.controls === 'ai') in2 = updateAI();
+    else if (p2.controls === 'p2') in2 = getFighterInput(p2);
     if (p1.dead) updateDead(p1); else updateFighter(p1, in1);
-    if (p2.dead) updateDead(p2); else updateFighter(p2, in2);
+    if (p2.controls === 'dummy') { /* 木桩不行动 */ }
+    else if (p2.dead) updateDead(p2); else updateFighter(p2, in2);
     resolveAttack(p1, p2);
     resolveAttack(p2, p1);
-    if (!p1.dead && !p2.dead) pushApart();
+    if (!p1.dead && !p2.dead && p2.controls !== 'dummy') pushApart();
     updatePickup();
     updateBombs();
   }
@@ -1061,7 +1294,6 @@ function update() {
   for (const k in keyPressed) delete keyPressed[k];
 }
 
-/* 双方贴地重叠时轻微推开 */
 function pushApart() {
   if (!p1.onGround || !p2.onGround) return;
   const dx = p2.x - p1.x;
@@ -1073,10 +1305,18 @@ function pushApart() {
   p2.x = Math.max(MARGIN, Math.min(MAP_W - MARGIN, p2.x + s * push));
 }
 
-/* ================= 音效与背景音乐（Web Audio API） ================= */
+/* ================= 音效与背景音乐 ================= */
 let audioCtx = null;
 let bgmGain = null;
 let bgmTimer = null;
+const sfxPool = {};
+function sfxLimit(type, fn) {
+  sfxPool[type] = (sfxPool[type] || 0);
+  if (sfxPool[type] >= 4) return;
+  sfxPool[type]++;
+  fn();
+  setTimeout(function () { sfxPool[type]--; }, 140);
+}
 function initAudio() {
   if (!audioCtx) {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; }
@@ -1103,26 +1343,31 @@ function playTone(freqStart, freqEnd, type, dur, vol, delay) {
   osc.stop(t0 + dur + 0.05);
 }
 const SFX = {
-  hit:       function () { playTone(340, 90, 'square', 0.12, 0.22); playTone(200, 60, 'triangle', 0.1, 0.15); },
-  special:   function () { playTone(100, 700, 'sawtooth', 0.5, 0.25); playTone(70, 180, 'square', 0.35, 0.18, 0.08); },
-  defend:    function () { playTone(460, 300, 'sine', 0.16, 0.2); playTone(690, 520, 'sine', 0.1, 0.08, 0.02); },
-  pickup:    function () { playTone(660, 990, 'sine', 0.12, 0.2); playTone(990, 1320, 'sine', 0.12, 0.15, 0.1); },
-  explosion: function () { playTone(160, 40, 'sawtooth', 0.5, 0.3); playTone(90, 30, 'square', 0.5, 0.2, 0.05); },
+  hit:       function () { sfxLimit('hit', function () { playTone(340, 90, 'square', 0.12, 0.22); playTone(200, 60, 'triangle', 0.1, 0.15); }); },
+  special:   function () { sfxLimit('special', function () { playTone(100, 700, 'sawtooth', 0.5, 0.25); playTone(70, 180, 'square', 0.35, 0.18, 0.08); }); },
+  defend:    function () { sfxLimit('defend', function () { playTone(460, 300, 'sine', 0.16, 0.2); }); },
+  pickup:    function () { sfxLimit('pickup', function () { playTone(660, 990, 'sine', 0.12, 0.2); }); },
+  explosion: function () { sfxLimit('explosion', function () { playTone(160, 40, 'sawtooth', 0.5, 0.3); }); },
+  combo:     function () { sfxLimit('combo', function () { playTone(880, 1320, 'square', 0.1, 0.18); }); },
   win:       function () { playTone(523, 523, 'square', 0.14, 0.18); playTone(659, 659, 'square', 0.14, 0.18, 0.15); playTone(784, 784, 'square', 0.28, 0.2, 0.3); },
   lose:      function () { playTone(392, 392, 'sawtooth', 0.16, 0.16); playTone(330, 330, 'sawtooth', 0.16, 0.16, 0.16); playTone(247, 247, 'sawtooth', 0.3, 0.18, 0.32); },
   draw:      function () { playTone(440, 440, 'triangle', 0.12, 0.15); playTone(440, 440, 'triangle', 0.12, 0.15, 0.14); },
 };
-/* 简单的循环背景音乐（无需音频文件） */
-const BGM_NOTES = [523, 659, 784, 659, 587, 698, 880, 698];
+/* 两首简单循环背景音乐 */
+const BGM_PATTERNS = [
+  [523, 659, 784, 659, 587, 698, 880, 698],
+  [392, 523, 659, 523, 440, 587, 698, 587],
+];
 let bgmIdx = 0;
 function startBGM() {
   if (!audioCtx || bgmTimer) return;
   bgmGain = audioCtx.createGain();
   bgmGain.gain.value = bgmVolume / 100 * 0.25;
   bgmGain.connect(audioCtx.destination);
+  const pattern = BGM_PATTERNS[Math.floor(Math.random() * BGM_PATTERNS.length)];
   bgmTimer = setInterval(function () {
     if (!audioCtx || audioCtx.state !== 'running') return;
-    const freq = BGM_NOTES[bgmIdx % BGM_NOTES.length];
+    const freq = pattern[bgmIdx % pattern.length];
     bgmIdx++;
     const t = audioCtx.currentTime;
     const o = audioCtx.createOscillator();
@@ -1138,7 +1383,7 @@ function startBGM() {
   }, 240);
 }
 
-/* ================= 主循环 ================= */
+/* ================= 主循环（含顿帧与慢动作） ================= */
 let lastTime = 0, acc = 0;
 function loop(now) {
   requestAnimationFrame(loop);
@@ -1146,12 +1391,16 @@ function loop(now) {
   const dt = Math.min(100, now - lastTime);
   lastTime = now;
   if (screen === 'game') {
-    if (!paused && !gameOver) {
-      acc += dt;
+    if (hitstop > 0) {
+      hitstop--;
+      draw();
+    } else if (!paused && !gameOver) {
+      acc += dt * (slowmo > 0 ? 0.3 : 1);
+      if (slowmo > 0) slowmo--;
       while (acc >= 16.667) { acc -= 16.667; update(); }
       draw();
     } else {
-      draw(); // 暂停/结算时绘制冻结画面（遮罩由 HTML 覆盖）
+      draw();
     }
   } else {
     acc = 0;
@@ -1159,11 +1408,13 @@ function loop(now) {
 }
 
 /* ================= 绘制 ================= */
-/* 背景点缀（世界坐标预生成） */
 const tufts = [];
 for (let i = 0; i < 70; i++) tufts.push({ x: Math.random() * MAP_W, h: 6 + Math.random() * 10 });
 const snowMarks = [];
 for (let i = 0; i < 90; i++) snowMarks.push({ x: Math.random() * MAP_W, y: GROUND_Y + 10 + Math.random() * 25, len: 6 + Math.random() * 14 });
+const stars = [];
+for (let i = 0; i < 120; i++) stars.push({ x: Math.random() * MAP_W, y: Math.random() * 300, s: 1 + Math.random() * 2 });
+const moon = { x: 1500, y: 90 };
 
 function drawBackground() {
   const map = MAPS[currentMap];
@@ -1172,6 +1423,31 @@ function drawBackground() {
   g.addColorStop(1, map.skyBottom);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, GROUND_Y);
+  if (map.night) {
+    // 星星 + 月亮
+    ctx.fillStyle = '#fff';
+    for (const s of stars) {
+      const sx = w2sX(s.x);
+      if (sx < -5 || sx > W + 5) continue;
+      ctx.globalAlpha = 0.5 + 0.5 * Math.abs(Math.sin(frame / 30 + s.x));
+      ctx.fillRect(sx, s.y, s.s, s.s);
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#f5f0d0';
+    ctx.beginPath();
+    ctx.arc(w2sX(moon.x), moon.y, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = map.skyTop;
+    ctx.beginPath();
+    ctx.arc(w2sX(moon.x) - 8, moon.y - 4, 18, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (map === MAPS.dusk) {
+    // 落日
+    ctx.fillStyle = 'rgba(255,180,90,0.9)';
+    ctx.beginPath();
+    ctx.arc(w2sX(1200), 150, 34, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.fillStyle = map.ground;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
   ctx.fillStyle = map.groundEdge;
@@ -1245,13 +1521,11 @@ function drawCharacter(f) {
   const img = images[f.folder + '/' + frameName + '.png'];
   if (f.invincible > 0 && Math.floor(f.invincible / 4) % 2 === 0) ctx.globalAlpha = 0.45;
   const sx = w2sX(f.x);
-  // 地面阴影
   const air = 1 - Math.max(0, Math.min(1, (GROUND_Y - f.y) / 200));
   ctx.fillStyle = 'rgba(0,0,0,' + (0.18 * air).toFixed(3) + ')';
   ctx.beginPath();
   ctx.ellipse(sx, GROUND_Y + 3, 34 * viewport.scale, 7 * viewport.scale, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 角色（随视口缩放）
   const cw = 100 * viewport.scale;
   const ch = 125 * viewport.scale;
   const topY = f.y - 125;
@@ -1262,7 +1536,6 @@ function drawCharacter(f) {
     ctx.fillRect(sx - cw / 2, topY, cw, ch);
   }
   ctx.globalAlpha = 1;
-  // 防御蓝光圈
   if (f.crouching) {
     ctx.strokeStyle = 'rgba(80,180,255,0.9)';
     ctx.lineWidth = 4;
@@ -1270,7 +1543,6 @@ function drawCharacter(f) {
     ctx.ellipse(sx, f.y - 40, 60 * viewport.scale, 68 * viewport.scale, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
-  // 护盾（金色圆环）
   if (f.shieldTimer > 0) {
     ctx.fillStyle = 'rgba(255,215,0,0.18)';
     ctx.beginPath();
@@ -1282,24 +1554,34 @@ function drawCharacter(f) {
     ctx.ellipse(sx, f.y - 60, 66 * viewport.scale, 78 * viewport.scale, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
-  // 锁链（头顶灰圈）
   if (f.chainTimer > 0) {
     ctx.fillStyle = '#95a5a6';
     ctx.beginPath();
     ctx.arc(sx, f.y - 135, 10 * viewport.scale, 0, Math.PI * 2);
     ctx.fill();
   }
-  // 持有炸弹（头顶提示）
   if (f.hasBomb) {
     ctx.fillStyle = '#e74c3c';
     ctx.font = '16px "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('💣', sx, f.y - 138);
   }
-  // 滑板（脚下蓝板）
   if (f.skateTimer > 0) {
     ctx.fillStyle = 'rgba(74,163,255,0.85)';
     ctx.fillRect(sx - 34 * viewport.scale, f.y - 6, 68 * viewport.scale, 6 * viewport.scale);
+  }
+  if (f.powerTimer > 0) {
+    ctx.fillStyle = '#ffd54f';
+    ctx.font = 'bold 12px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚡', sx + 44 * viewport.scale, f.y - 130);
+  }
+  // 连击显示
+  if (f.combo > 1) {
+    ctx.font = 'bold ' + (f.combo >= 5 ? 22 : 16) + 'px "Microsoft YaHei", sans-serif';
+    ctx.fillStyle = f.combo >= 5 ? '#ffd700' : '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText('x' + f.combo, sx, f.y - 150);
   }
 }
 
@@ -1332,10 +1614,10 @@ function drawDamageNumbers() {
   for (let i = 0; i < damageNumbers.length; i++) {
     const n = damageNumbers[i];
     ctx.globalAlpha = Math.max(0, n.life / n.maxLife);
-    ctx.font = n.isDefend ? 'bold 18px "Microsoft YaHei", sans-serif' : 'bold 24px "Microsoft YaHei", sans-serif';
-    ctx.fillStyle = n.isDefend ? '#7fd4ff' : '#ff4d4d';
-    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-    ctx.lineWidth = 3;
+    ctx.font = n.big ? 'bold 36px "Microsoft YaHei", sans-serif' : 'bold 22px "Microsoft YaHei", sans-serif';
+    ctx.fillStyle = DMG_COLORS[n.cls] || '#ff4d4d';
+    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.lineWidth = 4;
     ctx.strokeText(n.text, w2sX(n.x), n.y);
     ctx.fillText(n.text, w2sX(n.x), n.y);
   }
@@ -1352,32 +1634,28 @@ function drawFlashes() {
   }
 }
 
-/* HUD（屏幕坐标） */
+/* HUD（屏幕坐标，不随视口缩放） */
 function drawHUD() {
   const barW = 320, barH = 20, top = 18;
   const p1Name = playerName || 'P1';
-  const p2Name = mode === 'vsAI' ? '大狗' : 'P2';
-  drawBar(72, top, barW, barH, p1.hp / p1.maxHp, p1.color, p1Name, p1.hp, p1.maxHp);
-  drawBar(W - 40 - barW, top, barW, barH, p2.hp / p2.maxHp, p2.color, p2Name, p2.hp, p2.maxHp);
+  const p2Name = mode === 'vsAI' ? '大狗' : (mode === 'train' ? '木桩' : 'P2');
+  drawBar(72, top, barW, barH, p1.hp / p1.maxHp, p1.color, p1Name, p1.hp, p1.maxHp, p1);
+  drawBar(W - 40 - barW, top, barW, barH, p2.hp / p2.maxHp, p2.color, p2Name, p2.hp, p2.maxHp, p2);
   drawLives(72, top + 30, p1, 'left');
   drawLives(W - 40 - barW, top + 30, p2, 'right');
   drawSpecialCd(72, top + 52, p1, 'left');
   drawSpecialCd(W - 40 - barW, top + 52, p2, 'right');
-  if (p1.hasBomb) {
-    ctx.font = '12px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#ff6b6b';
-    ctx.fillText('💣 按 ' + keyDisplay(bindings.p1.bomb) + ' 放置（' + Math.ceil(p1.bombTimer / 60) + 's）', 72, top + 74);
-  }
-  if (p2.hasBomb) {
-    ctx.font = '12px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#ff6b6b';
-    ctx.fillText('💣 按 ' + keyDisplay(bindings.p2.bomb) + ' 放置（' + Math.ceil(p2.bombTimer / 60) + 's）', W - 40 - barW + 320, top + 74);
-  }
+  // buff 图标 + 剩余秒数
+  drawBuffs(72, top + 74, p1, 'left');
+  drawBuffs(W - 40 - barW, top + 74, p2, 'right');
+  // 本局得分
+  ctx.font = 'bold 15px "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillText('得分 ' + matchScore, W / 2, top + 14);
 }
 
-function drawBar(x, y, w, h, ratio, color, name, hp, maxHp) {
+function drawBar(x, y, w, h, ratio, color, name, hp, maxHp, f) {
   ratio = Math.max(0, Math.min(1, ratio));
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
@@ -1392,10 +1670,25 @@ function drawBar(x, y, w, h, ratio, color, name, hp, maxHp) {
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
-  ctx.font = 'bold 15px "Microsoft YaHei", sans-serif';
+  // 角色头像（用待机帧）
+  const img = images[f.folder + '/' + frameSet(f).mv[0] + '.png'];
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x - 22, y + 10, 15, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, x - 36, y - 4, 28, 28);
+    ctx.restore();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x - 22, y + 10, 15, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.font = 'bold 14px "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'left';
   ctx.fillStyle = '#fff';
-  ctx.fillText(name, x, y - 6);
+  ctx.fillText(name, x + 2, y - 6);
   ctx.textAlign = 'right';
   ctx.fillText(hp + ' / ' + maxHp, x + w, y - 6);
 }
@@ -1410,7 +1703,7 @@ function drawLives(x, y, f, side) {
 function drawSpecialCd(x, y, f, side) {
   const w = 110, h = 8;
   const ready = f.specialCd <= 0;
-  const ratio = ready ? 1 : 1 - f.specialCd / SPECIAL_ATK.cd;
+  const ratio = ready ? 1 : 1 - f.specialCd / f.stats.spCd;
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = ready ? '#ffd700' : '#c9a227';
@@ -1425,31 +1718,72 @@ function drawSpecialCd(x, y, f, side) {
   ctx.fillText(text, side === 'left' ? x + w + 8 : x - 8, y + 8);
 }
 
-function drawHint() {
+function drawBuffs(x, y, f, side) {
+  const items = [];
+  if (f.shieldTimer > 0) items.push('🛡' + Math.ceil(f.shieldTimer / 60) + 's');
+  if (f.chainTimer > 0) items.push('⛓' + Math.ceil(f.chainTimer / 60) + 's');
+  if (f.skateTimer > 0) items.push('🛹' + Math.ceil(f.skateTimer / 60) + 's');
+  if (f.powerTimer > 0) items.push('⚡' + Math.ceil(f.powerTimer / 60) + 's');
+  if (f.hasBomb) items.push('💣' + Math.ceil(f.bombTimer / 60) + 's');
+  if (items.length === 0) return;
   ctx.font = '12px "Microsoft YaHei", sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = side === 'left' ? 'left' : 'right';
+  ctx.fillText(items.join('  '), side === 'left' ? x : x + 320, y + 8);
+}
+
+function drawHint() {
+  ctx.font = '11px "Microsoft YaHei", sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.8)';
   ctx.textAlign = 'center';
-  ctx.fillText('A/D 移动 · W 跳 · S 蹲防 · J 攻 · K 大招 · M 炸弹 · ESC 暂停', W / 2, H - 10);
+  ctx.fillText(mode === 'train' ? 'W 跳 · S 蹲 · J 攻 · K 大招 · M 炸弹 · ESC 暂停 · 右下角可重置木桩' : 'A/D 移动 · W 跳 · S 蹲防 · J 攻 · K 大招 · M 炸弹 · ESC 暂停', W / 2, H - 8);
 }
 
 function drawGameOver() {
+  gameOverTimer++;
+  const t = Math.min(1, gameOverTimer / 30);
+  const scale = 0.6 + 0.4 * easeOutBack(t);
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W / 2, H / 2 - 40);
+  ctx.scale(scale, scale);
   ctx.textAlign = 'center';
-  ctx.font = 'bold 52px "Microsoft YaHei", sans-serif';
+  ctx.font = 'bold 54px "Microsoft YaHei", sans-serif';
   let text = '';
-  if (gameOver === 'win') text = mode === 'vsAI' ? '胜 利 !' : 'P1 胜利 !';
-  else if (gameOver === 'lose') text = mode === 'vsAI' ? '失 败 !' : 'P2 胜利 !';
+  if (gameOver === 'win') text = mode === 'vsAI' ? '胜 利 !' : (mode === 'train' ? '训练结束' : 'P1 胜利 !');
+  else if (gameOver === 'lose') text = mode === 'vsAI' ? '失 败 !' : (mode === 'vsP2' ? 'P2 胜利 !' : '');
   else text = '平 局 !';
   ctx.fillStyle = gameOver === 'win' ? '#ffd700' : (gameOver === 'lose' ? '#ff5a5a' : '#ffffff');
-  ctx.fillText(text, W / 2, H / 2 - 10);
-  ctx.font = '20px "Microsoft YaHei", sans-serif';
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+  // 胜方大头像
+  if (gameOver === 'win' || gameOver === 'lose') {
+    const winner = gameOver === 'win' ? p1 : p2;
+    const img = images[winner.folder + '/' + frameSet(winner).mv[0] + '.png'];
+    if (img && img.complete && img.naturalWidth > 0) {
+      const bw = 90 * (0.8 + 0.2 * t);
+      ctx.drawImage(img, W / 2 - bw / 2, H / 2 + 20, bw, bw * 1.25);
+    }
+  }
+  ctx.font = '19px "Microsoft YaHei", sans-serif';
   ctx.fillStyle = '#fff';
-  ctx.fillText('按 R 再来一局 · 按 M 返回主菜单', W / 2, H / 2 + 40);
+  ctx.textAlign = 'center';
+  ctx.fillText('得分 ' + matchScore + '　按 R 再来一局 · 按 M 返回主菜单', W / 2, H / 2 + 170);
+}
+function easeOutBack(t) {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
 
 function draw() {
   if (screen !== 'game') return;
+  ctx.save();
+  if (shake > 0) {
+    ctx.translate((Math.random() - 0.5) * shake * 8, (Math.random() - 0.5) * shake * 8);
+    shake *= 0.88;
+    if (shake < 0.02) shake = 0;
+  }
   drawBackground();
   drawPickup();
   drawBombs();
@@ -1459,6 +1793,7 @@ function draw() {
   drawCharacter(p2);
   drawParticles();
   drawDamageNumbers();
+  ctx.restore();
   drawFlashes();
   drawHUD();
   drawHint();
@@ -1480,6 +1815,3 @@ requestAnimationFrame(loop);
 </script>
 </body>
 </html>
-
-
-
