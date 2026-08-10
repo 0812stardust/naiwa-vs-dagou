@@ -83,11 +83,12 @@
   .card input[type=text] { display: block; width: 220px; margin: 11px auto; padding: 10px; font-size: 15px; font-family: inherit;
     text-align: center; border-radius: 13px; border: 2px solid var(--card-line); background: var(--pill); color: var(--text); outline: none; }
   .card input[type=text]:focus { border-color: var(--accent); }
-  .setting-row { display: flex; align-items: center; justify-content: space-between; width: 320px; margin: 8px auto; font-size: 14px; color: var(--text); }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; width: 336px; margin: 8px auto; font-size: 14px; color: var(--text); }
   .stepper { display: flex; align-items: center; gap: 7px; }
   .stepper button { width: 40px; height: 37px; margin: 0; font-size: 17px; border-radius: 12px; background: var(--pill); box-shadow: none; }
   .stepper span { min-width: 30px; font-size: 20px; font-weight: bold; color: var(--text); }
   .pill { width: auto !important; min-width: 70px; padding: 8px 10px !important; margin: 0 !important; font-size: 13px !important; border-radius: 12px !important; background: var(--pill) !important; box-shadow: none !important; }
+  .pill.small { min-width: 58px !important; padding: 7px 6px !important; font-size: 12px !important; }
   .pill.selected { background: var(--pill-sel) !important; border-color: var(--accent) !important; font-weight: 700; color: var(--text); }
   #soundToggle { width: 88px; height: 37px; padding: 0; margin: 0; font-size: 14px; }
   .range-row { display: flex; align-items: center; justify-content: space-between; width: 320px; margin: 8px auto; font-size: 14px; color: var(--text); }
@@ -105,8 +106,8 @@
   .map-opt { border: 1px solid var(--card-line); border-radius: 16px; padding: 0; cursor: pointer; background: var(--card); box-shadow: var(--shadow); overflow: hidden; transition: transform .1s ease; }
   .map-opt:hover { transform: translateY(-2px); }
   .map-opt .thumb { height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--text); }
-  .map-opt .mname { padding: 6px 0 7px; font-size: 12px; color: var(--text); font-weight: 700; }
-  .map-opt .mtag { font-size: 10px; color: var(--faint); padding: 0 6px 6px; }
+  .map-opt .mname { min-height: 20px; padding: 6px 4px 7px; font-size: 12px; color: var(--text); font-weight: 700; }
+  .map-opt .mtag { min-height: 26px; font-size: 10px; color: var(--faint); padding: 0 4px 6px; }
   .map-opt.selected { outline: 3px solid var(--accent); }
   #btnPickMap { width: 250px; padding: 11px 0; font-size: 15px; border-radius: 15px; background: var(--btn2); }
   #touchCtrl { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
@@ -213,10 +214,10 @@
       </div>
       <div class="setting-row"><span>主题</span>
         <div class="stepper">
-          <button id="themeMacaron" class="pill">马卡龙</button>
-          <button id="themeCyber" class="pill">赛博朋克</button>
-          <button id="themeRetro" class="pill">复古</button>
-          <button id="themeMono" class="pill">黑白灰</button>
+          <button id="themeMacaron" class="pill small">马卡龙</button>
+          <button id="themeCyber" class="pill small">赛博朋克</button>
+          <button id="themeRetro" class="pill small">复古</button>
+          <button id="themeMono" class="pill small">黑白灰</button>
         </div>
       </div>
       <button id="btnKeys" class="small-btn">⌨️ 键位设置</button>
@@ -1037,18 +1038,19 @@ function updateFighter(f, input) {
     /* 落地检测（地面 → 平台 → 蹦床） */
     let landed = false;
     if (f.vy >= 0 && f.y >= GROUND_Y && f.x > 0 && f.x < MAP_W) {
-      f.y = GROUND_Y; f.vy = 0; f.onGround = true; f.standY = GROUND_Y; f.dropThrough = false; f.squash = 6; landed = true;
+      f.y = GROUND_Y; f.vy = 0; f.onGround = true; f.standY = GROUND_Y; f.dropThrough = false; if (f.wasAir) f.squash = 6; landed = true;
     }
     if (!landed && f.vy >= 0 && !f.dropThrough) {
       for (const pl of standables()) {
         if (f.x + 30 > pl.x && f.x - 30 < pl.x + pl.w && f.y >= pl.y && (f.y - f.vy) <= pl.y + 4) {
-          f.y = pl.y; f.vy = 0; f.onGround = true; f.standY = pl.y; f.squash = 6; landed = true;
+          f.y = pl.y; f.vy = 0; f.onGround = true; f.standY = pl.y; if (f.wasAir) f.squash = 6; landed = true;
           break;
         }
       }
     }
     if (!landed) f.onGround = false;
     f.y += f.vy;
+    f.wasAir = !f.onGround;
   if (f.x < 0 || f.x > MAP_W) f.inVoid = true; // 越过地面边缘即进入虚空
 
   if (f.spawnDrop && f.onGround) {
