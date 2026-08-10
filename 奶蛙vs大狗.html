@@ -6,74 +6,114 @@
 <title>奶蛙 vs 大狗 v0.6</title>
 <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22short_name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%2F%22%7D'>
 <style>
+  /* ===== v0.7 设计系统（CSS 变量 + 四套主题） ===== */
+  :root, [data-theme="macaron"] {
+    --bg1: #fdfaf3; --bg2: #f6edda;
+    --card: #fffdf7; --card-line: #f0e4cf;
+    --text: #1a1a1a; --sub: #6f6758; --faint: #a3957c;
+    --accent: #e88bb0; --accent2: #7fc8b4;
+    --btn1: #f6e6bf; --btn2: #efe6d0; --btn3: #e9eedb; --btn-line: #eadfc8;
+    --pill: #f4eddf; --pill-sel: #e6d9bc;
+    --shadow: 0 10px 30px rgba(120,95,60,.10); --glow: none;
+  }
+  [data-theme="cyber"] {
+    --bg1: #0b1020; --bg2: #141b36;
+    --card: #141d38; --card-line: #2b3b66;
+    --text: #e9f2ff; --sub: #8fa6d4; --faint: #5d719c;
+    --accent: #ff2e88; --accent2: #22e0ff;
+    --btn1: #1c2747; --btn2: #18223f; --btn3: #131c36; --btn-line: #32467a;
+    --pill: #1b2544; --pill-sel: #283a68;
+    --shadow: 0 10px 30px rgba(0,0,0,.5); --glow: 0 0 12px rgba(255,46,136,.55);
+  }
+  [data-theme="retro"] {
+    --bg1: #f5e6c3; --bg2: #e6cd9d;
+    --card: #fbf1d9; --card-line: #d9b978;
+    --text: #46321b; --sub: #8a6a44; --faint: #b3946a;
+    --accent: #c9772e; --accent2: #8a9a5b;
+    --btn1: #edcf9c; --btn2: #f0daae; --btn3: #e4c48e; --btn-line: #cdab6c;
+    --pill: #efdcb6; --pill-sel: #e0bd82;
+    --shadow: 0 8px 24px rgba(90,60,20,.14); --glow: none;
+  }
+  [data-theme="mono"] {
+    --bg1: #f5f5f5; --bg2: #e6e6e6;
+    --card: #ffffff; --card-line: #d4d4d4;
+    --text: #111111; --sub: #5f5f5f; --faint: #9a9a9a;
+    --accent: #888888; --accent2: #aaaaaa;
+    --btn1: #ececec; --btn2: #e1e1e1; --btn3: #d6d6d6; --btn-line: #cccccc;
+    --pill: #ececec; --pill-sel: #c8c8c8;
+    --shadow: 0 10px 30px rgba(0,0,0,.10); --glow: none;
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; display: flex; align-items: center; justify-content: center;
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif; user-select: none; overflow: hidden;
-    background: linear-gradient(160deg, #fdfaf3 0%, #f6edda 100%); }
+    background: linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 100%); }
   #wrap { position: relative; }
   canvas { display: block; border-radius: 22px; background: #cfe6f2; width: min(96vw, calc(92vh * 1.8), 900px);
-    aspect-ratio: 900 / 500; height: auto; box-shadow: 0 14px 40px rgba(90,70,40,.16); }
+    aspect-ratio: 900 / 500; height: auto; box-shadow: 0 16px 44px rgba(20,20,40,.18); }
   .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    background: rgba(253,249,240,0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    border-radius: 22px; z-index: 10; animation: popIn .18s ease; }
-  @keyframes popIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+    background: color-mix(in srgb, var(--bg1) 62%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 22px; z-index: 10; animation: popIn .2s ease; }
+  @keyframes popIn { from { opacity: 0; transform: scale(.93) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   .hidden { display: none !important; }
-  .card { text-align: center; background: #fffdf7; border: 1px solid #f0e4cf; border-radius: 24px; padding: 16px 26px 18px;
-    box-shadow: 0 10px 30px rgba(120,95,60,.10); width: 400px; max-height: 96%; overflow: hidden; color: #1a1a1a; }
-  .card h1 { font-size: 30px; letter-spacing: 5px; margin: 0 0 2px; color: #1a1a1a; }
-  .card h2 { font-size: 22px; letter-spacing: 3px; margin: 0 0 8px; color: #1a1a1a; }
-  .sub { font-size: 14px; color: #6f6758; margin: 0 0 2px; }
-  .ver { font-size: 12px; color: #a3957c; letter-spacing: 2px; margin: 0 0 8px; }
-  .tips { font-size: 12px; color: #7a7262; margin: 6px 0 0; line-height: 1.6; }
-  .key-hint { font-size: 12px; color: #8a7a45; margin: 4px 0 0; min-height: 15px; }
-  .card button { display: block; margin: 7px auto; font-family: inherit; cursor: pointer; border: 1px solid #eadfc8;
-    border-radius: 15px; font-size: 15px; color: #1a1a1a; background: #f7efdf; box-shadow: 0 4px 12px rgba(120,95,60,.08);
-    transition: transform .08s ease, filter .12s ease; }
-  .card button:hover { filter: brightness(1.03); }
-  .card button:active { transform: scale(.97); }
-  .mode-card { width: 250px; padding: 12px 0; font-weight: 600; }
-  #btnStart { background: linear-gradient(135deg,#f6e6bf,#eddaa8); }
-  #btnVsP2 { background: #efe6d0; }
-  #btnTrain { background: #e9eedb; }
+  .card { text-align: center; background: var(--card); border: 1px solid var(--card-line); border-radius: 26px;
+    padding: 16px 26px 18px; box-shadow: var(--shadow); width: 400px; max-height: 96%; overflow: hidden; color: var(--text); }
+  .card h1 { font-size: 30px; letter-spacing: 5px; margin: 0 0 2px; color: var(--text); font-weight: 800; }
+  .card h2 { font-size: 22px; letter-spacing: 3px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  .sub { font-size: 14px; color: var(--sub); margin: 0 0 2px; }
+  .ver { font-size: 12px; color: var(--faint); letter-spacing: 2px; margin: 0 0 8px; }
+  .tips { font-size: 12px; color: var(--sub); margin: 6px 0 0; line-height: 1.6; }
+  .key-hint { font-size: 12px; color: var(--accent); margin: 4px 0 0; min-height: 15px; font-weight: 600; }
+  .card button { display: block; margin: 7px auto; font-family: inherit; cursor: pointer; border: 1px solid var(--btn-line);
+    border-radius: 15px; font-size: 15px; color: var(--text); background: var(--btn2); box-shadow: 0 4px 12px rgba(20,20,40,.08);
+    transition: transform .08s ease, box-shadow .08s ease, filter .12s ease, box-shadow .2s ease; }
+  .card button:hover { filter: brightness(1.05); box-shadow: 0 6px 16px rgba(20,20,40,.12); }
+  .card button:active { transform: scale(.96) translateY(2px); box-shadow: 0 2px 6px rgba(20,20,40,.12); }
+  .mode-card { width: 250px; padding: 12px 0; font-weight: 700; }
+  #btnStart { background: linear-gradient(135deg, var(--btn1), var(--btn1)); }
+  #btnVsP2 { background: var(--btn2); }
+  #btnTrain { background: var(--btn3); }
   .icon-row { display: flex; justify-content: center; gap: 10px; margin: 10px 0 0; }
-  .icon-row button { width: 44px; height: 44px; margin: 0; border-radius: 13px; font-size: 18px; background: #f4eddf; border-color: #ece1cc; }
-  .small-btn { width: 170px !important; padding: 8px 0 !important; font-size: 13px !important; background: #f2ecdf !important; box-shadow: none !important; }
+  .icon-row button { width: 46px; height: 46px; margin: 0; border-radius: 14px; font-size: 19px; background: var(--pill); border-color: var(--btn-line); }
+  .icon-row button svg { width: 22px; height: 22px; display: block; margin: 0 auto; }
+  .small-btn { width: 170px !important; padding: 8px 0 !important; font-size: 13px !important; background: var(--pill) !important; box-shadow: none !important; }
   #pauseBtn { position: absolute; top: 10px; left: 10px; width: 34px; height: 34px; border-radius: 12px; border: none;
-    background: rgba(255,253,247,0.9); color: #1a1a1a; font-size: 15px; cursor: pointer; z-index: 5; box-shadow: 0 3px 10px rgba(120,95,60,.15); }
+    background: color-mix(in srgb, var(--card) 88%, transparent); color: var(--text); font-size: 15px; cursor: pointer; z-index: 5; box-shadow: 0 3px 10px rgba(20,20,40,.15); }
   #trainResetBtn { position: absolute; bottom: 10px; right: 10px; padding: 7px 14px; border-radius: 12px; border: none;
-    background: rgba(255,253,247,0.9); color: #1a1a1a; font-size: 12px; cursor: pointer; z-index: 5; box-shadow: 0 3px 10px rgba(120,95,60,.15); }
+    background: color-mix(in srgb, var(--card) 88%, transparent); color: var(--text); font-size: 12px; cursor: pointer; z-index: 5; box-shadow: 0 3px 10px rgba(20,20,40,.15); }
   .card input[type=text] { display: block; width: 220px; margin: 11px auto; padding: 10px; font-size: 15px; font-family: inherit;
-    text-align: center; border-radius: 13px; border: 2px solid #e7dcc6; background: #fbf7ee; color: #1a1a1a; outline: none; }
-  .setting-row { display: flex; align-items: center; justify-content: space-between; width: 300px; margin: 8px auto; font-size: 14px; color: #1a1a1a; }
+    text-align: center; border-radius: 13px; border: 2px solid var(--card-line); background: var(--pill); color: var(--text); outline: none; }
+  .card input[type=text]:focus { border-color: var(--accent); }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; width: 320px; margin: 8px auto; font-size: 14px; color: var(--text); }
   .stepper { display: flex; align-items: center; gap: 7px; }
-  .stepper button { width: 40px; height: 37px; margin: 0; font-size: 17px; border-radius: 12px; background: #f4eddf; box-shadow: none; }
-  .stepper span { min-width: 30px; font-size: 20px; font-weight: bold; color: #1a1a1a; }
-  .pill { width: auto !important; min-width: 70px; padding: 8px 10px !important; margin: 0 !important; font-size: 13px !important; border-radius: 12px !important; background: #f4eddf !important; box-shadow: none !important; }
-  .pill.selected { background: #e6d9bc !important; border-color: #cdb98a !important; font-weight: 600; }
+  .stepper button { width: 40px; height: 37px; margin: 0; font-size: 17px; border-radius: 12px; background: var(--pill); box-shadow: none; }
+  .stepper span { min-width: 30px; font-size: 20px; font-weight: bold; color: var(--text); }
+  .pill { width: auto !important; min-width: 70px; padding: 8px 10px !important; margin: 0 !important; font-size: 13px !important; border-radius: 12px !important; background: var(--pill) !important; box-shadow: none !important; }
+  .pill.selected { background: var(--pill-sel) !important; border-color: var(--accent) !important; font-weight: 700; color: var(--text); }
   #soundToggle { width: 88px; height: 37px; padding: 0; margin: 0; font-size: 14px; }
-  .range-row { display: flex; align-items: center; justify-content: space-between; width: 300px; margin: 8px auto; font-size: 14px; color: #1a1a1a; }
-  .range-row input { width: 180px; accent-color: #b49a62; }
+  .range-row { display: flex; align-items: center; justify-content: space-between; width: 320px; margin: 8px auto; font-size: 14px; color: var(--text); }
+  .range-row input { width: 180px; accent-color: var(--accent); }
   #btnBack, #btnBack2, #btnBack3 { margin-top: 10px; }
   #keysTable { width: 320px; margin: 7px auto; border-collapse: collapse; font-size: 12px; }
-  #keysTable td { border: 1px solid #eee3cd; padding: 4px; text-align: center; }
-  #keysTable .action-name { text-align: left; color: #333; }
-  #keysTable button { width: 100px; margin: 0; padding: 6px 0; font-size: 12px; border-radius: 10px; background: #f4eddf; box-shadow: none; }
+  #keysTable td { border: 1px solid var(--card-line); padding: 4px; text-align: center; }
+  #keysTable .action-name { text-align: left; color: var(--sub); }
+  #keysTable button { width: 100px; margin: 0; padding: 6px 0; font-size: 12px; border-radius: 10px; background: var(--pill); box-shadow: none; }
   #keysTable button.conflict { background: #f8d7d0 !important; color: #8a2c1f !important; border-color: #e5a99d !important; }
-  .stat-line { font-size: 14px; color: #1a1a1a; margin: 6px 0; }
-  #charStatHint { font-size: 12px; color: #6f6758; line-height: 1.6; min-height: 18px; white-space: pre-line; }
-  #pauseInfo { font-size: 13px; color: #6f6758; margin: 6px 0; }
+  .stat-line { font-size: 14px; color: var(--text); margin: 6px 0; }
+  #charStatHint { font-size: 12px; color: var(--sub); line-height: 1.6; min-height: 18px; white-space: pre-line; }
+  #pauseInfo { font-size: 13px; color: var(--sub); margin: 6px 0; }
   .map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 9px 0; }
-  .map-opt { border: 1px solid #eee3cd; border-radius: 16px; padding: 0; cursor: pointer; background: #fffdf7; box-shadow: 0 5px 14px rgba(120,95,60,.08); overflow: hidden; }
-  .map-opt .thumb { height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #1a1a1a; }
-  .map-opt .mname { padding: 6px 0 7px; font-size: 12px; color: #1a1a1a; font-weight: 600; }
-  .map-opt .mtag { font-size: 10px; color: #9a8f7a; padding: 0 6px 6px; }
-  .map-opt.selected { outline: 3px solid #c9b37f; }
-  #btnPickMap { width: 250px; padding: 11px 0; font-size: 15px; border-radius: 15px; background: #efe6d0; }
+  .map-opt { border: 1px solid var(--card-line); border-radius: 16px; padding: 0; cursor: pointer; background: var(--card); box-shadow: var(--shadow); overflow: hidden; transition: transform .1s ease; }
+  .map-opt:hover { transform: translateY(-2px); }
+  .map-opt .thumb { height: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--text); }
+  .map-opt .mname { padding: 6px 0 7px; font-size: 12px; color: var(--text); font-weight: 700; }
+  .map-opt .mtag { font-size: 10px; color: var(--faint); padding: 0 6px 6px; }
+  .map-opt.selected { outline: 3px solid var(--accent); }
+  #btnPickMap { width: 250px; padding: 11px 0; font-size: 15px; border-radius: 15px; background: var(--btn2); }
   #touchCtrl { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
   #touchCtrl .tbtn { position: absolute; width: 52px; height: 52px; border-radius: 50%; border: none;
-    background: rgba(255,253,247,0.7); color: #1a1a1a; font-size: 18px; display: flex; align-items: center; justify-content: center;
-    pointer-events: auto; touch-action: none; box-shadow: 0 4px 12px rgba(120,95,60,.18); }
-  #touchCtrl .tbtn:active { background: #fff; }
+    background: color-mix(in srgb, var(--card) 75%, transparent); color: var(--text); font-size: 18px; display: flex; align-items: center; justify-content: center;
+    pointer-events: auto; touch-action: none; box-shadow: 0 4px 12px rgba(20,20,40,.18); }
+  #touchCtrl .tbtn:active { background: var(--card); }
   .t-left { left: 14px; bottom: 70px; } .t-right { left: 82px; bottom: 70px; }
   .t-jump { left: 30px; bottom: 138px; } .t-crouch { left: 82px; bottom: 14px; }
   .t-attack { right: 82px; bottom: 70px; } .t-special { right: 14px; bottom: 70px; } .t-bomb { right: 46px; bottom: 138px; }
@@ -116,10 +156,10 @@
       <button id="btnVsP2" class="mode-card">👥 双人对战</button>
       <button id="btnTrain" class="mode-card">🎯 训练模式</button>
       <div class="icon-row">
-        <button id="btnSettings" title="设置">⚙</button>
-        <button id="btnStats" title="成绩">🏆</button>
-        <button id="btnChangeName" title="修改昵称">✏️</button>
-        <button id="btnExit" title="退出">🚪</button>
+        <button id="btnSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2.2"/><path d="M4 17h4"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2.2"/></svg></button>
+        <button id="btnStats" title="成绩"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="17" rx="1"/></svg></button>
+        <button id="btnChangeName" title="修改昵称"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M14 4l6 6L9 21H3v-6z"/></svg></button>
+        <button id="btnExit" title="退出"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4h8v16h-8"/><path d="M14 12H3"/><path d="M6 9l-3 3 3 3"/></svg></button>
       </div>
     </div>
   </div>
@@ -169,6 +209,14 @@
           <button id="aiEasy" class="pill">简单</button>
           <button id="aiNormal" class="pill">普通</button>
           <button id="aiHard" class="pill">困难</button>
+        </div>
+      </div>
+      <div class="setting-row"><span>主题</span>
+        <div class="stepper">
+          <button id="themeMacaron" class="pill">马卡龙</button>
+          <button id="themeCyber" class="pill">赛博朋克</button>
+          <button id="themeRetro" class="pill">复古</button>
+          <button id="themeMono" class="pill">黑白灰</button>
         </div>
       </div>
       <button id="btnKeys" class="small-btn">⌨️ 键位设置</button>
@@ -329,6 +377,7 @@ const CHAR_SPECS = {
 };
 
 const images = {};
+const bgImages = {};
 let imagesLeft = 0;
 for (const spec of Object.values(CHAR_SPECS)) {
   for (const side of Object.values(spec.frames)) {
@@ -342,6 +391,13 @@ for (const spec of Object.values(CHAR_SPECS)) {
       images[key] = img;
     }
   }
+}
+/* 背景插画（v0.7：草地/夜晚试点，缺失则回退代码视差背景） */
+for (const key of ['grass', 'night']) { // 试点 2 张；后续补雪地/黄昏时加入
+  const bimg = new Image();
+  bimg.onload = bimg.onerror = function () { /* 异步即可 */ };
+  bimg.src = 'bg/' + key + '.png';
+  bgImages[key] = bimg;
 }
 
 /* ================= localStorage ================= */
@@ -367,7 +423,24 @@ if (!bindings || !bindings.p1 || !bindings.p2) {
   saveJSON('keybindings', bindings);
 }
 
-let settings = loadJSON('game_settings', { lives: 3, sound: true, aiDifficulty: 'normal' });
+const THEMES = {
+  macaron: { name: '马卡龙', accent: '#e88bb0' },
+  cyber:   { name: '赛博朋克', accent: '#ff2e88' },
+  retro:   { name: '复古', accent: '#c9772e' },
+  mono:    { name: '黑白灰', accent: '#8a8a8a' },
+};
+let settings = loadJSON('game_settings', { lives: 3, sound: true, aiDifficulty: 'normal', theme: 'macaron' });
+if (!THEMES[settings.theme]) settings.theme = 'macaron';
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', settings.theme);
+}
+applyTheme();
+function updateThemeUI() {
+  $('themeMacaron').classList.toggle('selected', settings.theme === 'macaron');
+  $('themeCyber').classList.toggle('selected', settings.theme === 'cyber');
+  $('themeRetro').classList.toggle('selected', settings.theme === 'retro');
+  $('themeMono').classList.toggle('selected', settings.theme === 'mono');
+}
 let stats = loadJSON('game_stats', { games: 0, wins: 0, maxCombo: 0, bestScore: 0, totalScore: 0 });
 let sfxVolume = loadNum('sfx_volume', 80);
 let bgmVolume = loadNum('bgm_volume', 40);
@@ -393,6 +466,8 @@ let shake = 0;
 let gameOverTimer = 0;
 let tutorialTimer = 0;   // 新手引导倒计时
 let trainDamage = 0;     // 训练模式累计伤害
+let countdownTimer = 0;  // 开局 3-2-1 倒计时
+const afterimages = [];  // 受击残影
 
 const OVERLAY_IDS = ['loginScreen', 'menuScreen', 'readyScreen', 'mapSelectScreen', 'settingsScreen', 'keysScreen', 'statsScreen', 'pauseScreen', 'farewellScreen'];
 
@@ -523,6 +598,7 @@ function showSettings() {
   $('livesValue').textContent = settings.lives;
   $('soundToggle').textContent = settings.sound ? '开' : '关';
   updateAISettingsUI();
+  updateThemeUI();
   showScreen('settingsScreen');
 }
 function updateAISettingsUI() {
@@ -588,6 +664,10 @@ $('soundToggle').addEventListener('click', function () {
 $('aiEasy').addEventListener('click', function () { settings.aiDifficulty = 'easy'; saveJSON('game_settings', settings); updateAISettingsUI(); });
 $('aiNormal').addEventListener('click', function () { settings.aiDifficulty = 'normal'; saveJSON('game_settings', settings); updateAISettingsUI(); });
 $('aiHard').addEventListener('click', function () { settings.aiDifficulty = 'hard'; saveJSON('game_settings', settings); updateAISettingsUI(); });
+$('themeMacaron').addEventListener('click', function () { settings.theme = 'macaron'; saveJSON('game_settings', settings); applyTheme(); updateThemeUI(); });
+$('themeCyber').addEventListener('click', function () { settings.theme = 'cyber'; saveJSON('game_settings', settings); applyTheme(); updateThemeUI(); });
+$('themeRetro').addEventListener('click', function () { settings.theme = 'retro'; saveJSON('game_settings', settings); applyTheme(); updateThemeUI(); });
+$('themeMono').addEventListener('click', function () { settings.theme = 'mono'; saveJSON('game_settings', settings); applyTheme(); updateThemeUI(); });
 $('btnKeys').addEventListener('click', showKeysScreen);
 $('btnBack').addEventListener('click', showMenu);
 $('btnBack2').addEventListener('click', showSettings);
@@ -755,6 +835,8 @@ function makeFighter(char, controls, x) {
     spawnDrop: false,
     inVoid: false,
     hitFlash: 0,
+    squash: 0,            // 弹性形变（>0 压扁 / <0 拉长）
+    wasAir: false,
     lives: settings.lives, maxLives: settings.lives,
     dead: false, deadTimer: 0,
     dummy: controls === 'dummy',
@@ -871,8 +953,9 @@ function updateFighter(f, input) {
   if (f.stats.trait === 'crit' && f.critTimer > 0) f.critTimer--;
   if (f.hitFlash > 0) f.hitFlash--;
   if (f.techCd > 0) f.techCd--;
+  if (f.squash > 0) f.squash--; else if (f.squash < 0) f.squash++;
 
-  if (f.spawnDrop || f.inVoid) {
+  if (f.spawnDrop || f.inVoid || countdownTimer > 0) {
     input = { move: 0, jump: false, jumpHeld: false, crouch: false, attack: false, special: false, bomb: false, face: undefined };
   }
 
@@ -931,10 +1014,12 @@ function updateFighter(f, input) {
         f.vy = BASE_JUMP * f.stats.jumpMult;
         f.onGround = false;
         f.jumpsUsed = 1;
+        f.squash = -7;
       } else if (f.stats.trait === 'doubleJump' && f.jumpsUsed < 2 && f.jumpCd <= 0) {
         f.vy = BASE_JUMP * f.stats.jumpMult * 0.9;
         f.jumpsUsed = 2;
         f.jumpCd = AIR_JUMP_CD;
+        f.squash = -5;
         spawnParticle(f.x, f.y - 40, '#ffffff');
       }
     }
@@ -952,12 +1037,12 @@ function updateFighter(f, input) {
     /* 落地检测（地面 → 平台 → 蹦床） */
     let landed = false;
     if (f.vy >= 0 && f.y >= GROUND_Y && f.x > 0 && f.x < MAP_W) {
-      f.y = GROUND_Y; f.vy = 0; f.onGround = true; f.standY = GROUND_Y; f.dropThrough = false; landed = true;
+      f.y = GROUND_Y; f.vy = 0; f.onGround = true; f.standY = GROUND_Y; f.dropThrough = false; f.squash = 6; landed = true;
     }
     if (!landed && f.vy >= 0 && !f.dropThrough) {
       for (const pl of standables()) {
         if (f.x + 30 > pl.x && f.x - 30 < pl.x + pl.w && f.y >= pl.y && (f.y - f.vy) <= pl.y + 4) {
-          f.y = pl.y; f.vy = 0; f.onGround = true; f.standY = pl.y; landed = true;
+          f.y = pl.y; f.vy = 0; f.onGround = true; f.standY = pl.y; f.squash = 6; landed = true;
           break;
         }
       }
@@ -1241,6 +1326,7 @@ function applyDamage(def, dmg, opts) {
     spawnHitParticles(def.x - (opts.attacker ? opts.attacker.facing : 1) * 30, def.y - 75);
     spawnImpactSparks(def.x - (opts.attacker ? opts.attacker.facing : 1) * 34, def.y - 70);
     def.hitFlash = 4; // 受击白闪
+    if (!def.dummy) afterimages.push({ char: def.char, x: def.x, y: def.y, facing: def.facing, life: 14 });
     addScore(opts.isCrit ? 20 : 10);
     if (opts.attacker) {
       // 攻击后坐力：普攻类 ×3，大招 ×5
@@ -1479,6 +1565,10 @@ function updateEffects() {
     flashes[i].life--;
     if (flashes[i].life <= 0) flashes.splice(i, 1);
   }
+  for (let i = afterimages.length - 1; i >= 0; i--) {
+    afterimages[i].life--;
+    if (afterimages[i].life <= 0) afterimages.splice(i, 1);
+  }
 }
 
 /* ================= 视口 ================= */
@@ -1534,6 +1624,7 @@ function startBattle() {
   trainDamage = 0;
   acc = 0;
   try { tutorialTimer = localStorage.getItem('tutorial_shown') ? 0 : 300; localStorage.setItem('tutorial_shown', '1'); } catch (e) { tutorialTimer = 300; }
+  countdownTimer = 130; // 3-2-1 GO 倒计时
   setPaused(false);
   $('bgmSlider').value = bgmVolume;
   $('sfxSlider').value = sfxVolume;
@@ -1545,6 +1636,7 @@ p2 = makeFighter('dog', 'ai', 1600);
 function update() {
   frame++;
   if (screen === 'game' && !paused && !gameOver) {
+    if (countdownTimer > 0) countdownTimer--;
     updateViewport();
     matchTime = frame / 60;
     const in1 = getFighterInput(p1);
@@ -1699,89 +1791,183 @@ const deco = {
 function drawBackground() {
   const map = MAPS[currentMap];
   const th = map.theme;
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, th.skyTop);
-  g.addColorStop(1, th.skyBottom);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H); // 背景铺满，地面之外即虚空
+  const bimg = bgImages[currentMap];
+  const hasBg = bimg && bimg.complete && bimg.naturalWidth > 0;
 
-  if (map.night) {
-    // 星星 + 月亮
-    ctx.fillStyle = '#fff';
-    for (const s of deco.stars) {
-      const sx = w2sX(s.x);
-      if (sx < -5 || sx > W + 5) continue;
-      ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(frame / 30 + s.x));
-      ctx.fillRect(sx, s.y, s.s, s.s);
-    }
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#f5f0d0';
-    ctx.beginPath(); ctx.arc(w2sX(1500), 90, 22, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = th.skyTop;
-    ctx.beginPath(); ctx.arc(w2sX(1500) - 8, 86, 18, 0, Math.PI * 2); ctx.fill();
-    // 城市剪影 + 灯光
-    for (const b of deco.city) {
-      const sx = w2sX(b.x);
-      ctx.fillStyle = 'rgba(8,14,30,0.9)';
-      ctx.fillRect(sx, GROUND_Y - b.h, b.w, b.h);
-      ctx.fillStyle = 'rgba(255,220,120,0.75)';
-      for (let wy = 0; wy < b.h - 8; wy += 12) {
-        for (let wx = 4; wx < b.w - 6; wx += 12) {
-          if ((wx + wy) % 24 < 12) ctx.fillRect(sx + wx, GROUND_Y - b.h + wy + 4, 4, 5);
+  if (hasBg) {
+    // 背景插画作为远景垫底（随世界视口平移），再叠加中景/近景装饰
+    ctx.drawImage(bimg, w2sX(0), 0, MAP_W * viewport.scale, H);
+    if (map.snow) {
+      for (const p of deco.pines) {
+        const sx = w2sX(p.x);
+        ctx.fillStyle = '#e8f2f9';
+        ctx.fillRect(sx - 5, GROUND_Y - 12, 10, 12);
+        ctx.fillStyle = '#bfe0ef';
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(sx - 26 * p.s + i * 8, GROUND_Y - 8 - i * 18);
+          ctx.lineTo(sx, GROUND_Y - 52 * p.s - i * 8);
+          ctx.lineTo(sx + 26 * p.s - i * 8, GROUND_Y - 8 - i * 18);
+          ctx.closePath(); ctx.fill();
         }
       }
-    }
-    // 流星
-    if (frame % 240 < 40) {
-      const t = (frame % 240) / 40;
-      const mx = w2sX(300 + t * 900);
-      const my = 40 + t * 160;
-      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx - 46, my + 26); ctx.stroke();
-    }
-  } else if (map === MAPS.dusk) {
-    // 落日 + 云霞 + 远山剪影
-    const sunX = w2sX(1180), sunY = 168;
-    const sg = ctx.createRadialGradient(sunX, sunY, 6, sunX, sunY, 90);
-    sg.addColorStop(0, 'rgba(255,214,130,0.95)');
-    sg.addColorStop(1, 'rgba(255,170,90,0)');
-    ctx.fillStyle = sg;
-    ctx.beginPath(); ctx.arc(sunX, sunY, 90, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(120,80,110,0.55)';
-    for (const m of deco.mountains) {
-      const sx = w2sX(m.x);
-      ctx.beginPath();
-      ctx.moveTo(sx - m.w / 2, GROUND_Y);
-      ctx.lineTo(sx, GROUND_Y - m.h);
-      ctx.lineTo(sx + m.w / 2, GROUND_Y);
-      ctx.closePath(); ctx.fill();
-    }
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    for (const c of deco.clouds) {
-      const sx = w2sX(c.x);
-      ctx.beginPath();
-      ctx.ellipse(sx, c.y, 46 * c.s, 16 * c.s, 0, 0, Math.PI * 2);
-      ctx.ellipse(sx + 30 * c.s, c.y + 4, 30 * c.s, 12 * c.s, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const f of deco.flakes) {
+        const fy = (f.y + frame * f.sp) % 500;
+        ctx.fillRect(w2sX((f.x + Math.sin(frame / 40 + f.x) * 30 + MAP_W) % MAP_W), fy, 2.5, 2.5);
+      }
+    } else if (map === MAPS.grass) {
+      for (const t of deco.trees) {
+        const sx = w2sX(t.x);
+        ctx.fillStyle = '#8a6a44';
+        ctx.fillRect(sx - 5, GROUND_Y - 34 * t.s, 10, 34 * t.s);
+        ctx.fillStyle = '#4e9a4e';
+        ctx.beginPath();
+        ctx.arc(sx, GROUND_Y - 44 * t.s, 22 * t.s, 0, Math.PI * 2);
+        ctx.arc(sx - 16 * t.s, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
+        ctx.arc(sx + 16 * t.s, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (const f of deco.flowers) {
+        const sx = w2sX(f.x);
+        ctx.fillStyle = f.c;
+        ctx.beginPath(); ctx.arc(sx, f.y, 4, 0, Math.PI * 2); ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = 'rgba(20,34,54,0.35)';
+      for (const t of deco.trees) {
+        const sx = w2sX(t.x);
+        ctx.fillRect(sx - 4, GROUND_Y - 26 * t.s, 8, 26 * t.s);
+        ctx.beginPath();
+        ctx.arc(sx, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   } else {
-    // 草地/雪地：云朵
-    ctx.fillStyle = map.snow ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.75)';
-    for (const c of deco.clouds) {
-      const sx = w2sX(c.x);
-      ctx.beginPath();
-      ctx.ellipse(sx, c.y, 46 * c.s, 16 * c.s, 0, 0, Math.PI * 2);
-      ctx.ellipse(sx + 30 * c.s, c.y + 4, 30 * c.s, 12 * c.s, 0, 0, Math.PI * 2);
-      ctx.fill();
+    // 代码视差背景（天空渐变 + 场景装饰）
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, th.skyTop);
+    g.addColorStop(1, th.skyBottom);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    if (map.night) {
+      ctx.fillStyle = '#fff';
+      for (const s of deco.stars) {
+        const sx = w2sX(s.x);
+        if (sx < -5 || sx > W + 5) continue;
+        ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(frame / 30 + s.x));
+        ctx.fillRect(sx, s.y, s.s, s.s);
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#f5f0d0';
+      ctx.beginPath(); ctx.arc(w2sX(1500), 90, 22, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = th.skyTop;
+      ctx.beginPath(); ctx.arc(w2sX(1500) - 8, 86, 18, 0, Math.PI * 2); ctx.fill();
+      for (const b of deco.city) {
+        const sx = w2sX(b.x);
+        ctx.fillStyle = 'rgba(8,14,30,0.9)';
+        ctx.fillRect(sx, GROUND_Y - b.h, b.w, b.h);
+        ctx.fillStyle = 'rgba(255,220,120,0.75)';
+        for (let wy = 0; wy < b.h - 8; wy += 12) {
+          for (let wx = 4; wx < b.w - 6; wx += 12) {
+            if ((wx + wy) % 24 < 12) ctx.fillRect(sx + wx, GROUND_Y - b.h + wy + 4, 4, 5);
+          }
+        }
+      }
+      if (frame % 240 < 40) {
+        const t = (frame % 240) / 40;
+        const mx = w2sX(300 + t * 900);
+        const my = 40 + t * 160;
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx - 46, my + 26); ctx.stroke();
+      }
+    } else if (map === MAPS.dusk) {
+      const sunX = w2sX(1180), sunY = 168;
+      const sg = ctx.createRadialGradient(sunX, sunY, 6, sunX, sunY, 90);
+      sg.addColorStop(0, 'rgba(255,214,130,0.95)');
+      sg.addColorStop(1, 'rgba(255,170,90,0)');
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.arc(sunX, sunY, 90, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(120,80,110,0.55)';
+      for (const m of deco.mountains) {
+        const sx = w2sX(m.x);
+        ctx.beginPath();
+        ctx.moveTo(sx - m.w / 2, GROUND_Y);
+        ctx.lineTo(sx, GROUND_Y - m.h);
+        ctx.lineTo(sx + m.w / 2, GROUND_Y);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      for (const c of deco.clouds) {
+        const sx = w2sX(c.x);
+        ctx.beginPath();
+        ctx.ellipse(sx, c.y, 46 * c.s, 16 * c.s, 0, 0, Math.PI * 2);
+        ctx.ellipse(sx + 30 * c.s, c.y + 4, 30 * c.s, 12 * c.s, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = map.snow ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.75)';
+      for (const c of deco.clouds) {
+        const sx = w2sX(c.x);
+        ctx.beginPath();
+        ctx.ellipse(sx, c.y, 46 * c.s, 16 * c.s, 0, 0, Math.PI * 2);
+        ctx.ellipse(sx + 30 * c.s, c.y + 4, 30 * c.s, 12 * c.s, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = map.snow ? '#fff7e0' : '#ffe98a';
+      ctx.beginPath(); ctx.arc(w2sX(400), 70, 26, 0, Math.PI * 2); ctx.fill();
     }
-    // 太阳
-    ctx.fillStyle = map.snow ? '#fff7e0' : '#ffe98a';
-    ctx.beginPath(); ctx.arc(w2sX(400), 70, 26, 0, Math.PI * 2); ctx.fill();
+    // 草地装饰（树/花）或雪地（松树/飘雪）
+    if (map.snow) {
+      for (const p of deco.pines) {
+        const sx = w2sX(p.x);
+        ctx.fillStyle = '#e8f2f9';
+        ctx.fillRect(sx - 5, GROUND_Y - 12, 10, 12);
+        ctx.fillStyle = '#bfe0ef';
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(sx - 26 * p.s + i * 8, GROUND_Y - 8 - i * 18);
+          ctx.lineTo(sx, GROUND_Y - 52 * p.s - i * 8);
+          ctx.lineTo(sx + 26 * p.s - i * 8, GROUND_Y - 8 - i * 18);
+          ctx.closePath(); ctx.fill();
+        }
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const f of deco.flakes) {
+        const fy = (f.y + frame * f.sp) % 500;
+        ctx.fillRect(w2sX((f.x + Math.sin(frame / 40 + f.x) * 30 + MAP_W) % MAP_W), fy, 2.5, 2.5);
+      }
+    } else if (map === MAPS.grass) {
+      for (const t of deco.trees) {
+        const sx = w2sX(t.x);
+        ctx.fillStyle = '#8a6a44';
+        ctx.fillRect(sx - 5, GROUND_Y - 34 * t.s, 10, 34 * t.s);
+        ctx.fillStyle = '#4e9a4e';
+        ctx.beginPath();
+        ctx.arc(sx, GROUND_Y - 44 * t.s, 22 * t.s, 0, Math.PI * 2);
+        ctx.arc(sx - 16 * t.s, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
+        ctx.arc(sx + 16 * t.s, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (const f of deco.flowers) {
+        const sx = w2sX(f.x);
+        ctx.fillStyle = f.c;
+        ctx.beginPath(); ctx.arc(sx, f.y, 4, 0, Math.PI * 2); ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = map === MAPS.dusk ? 'rgba(70,80,60,0.5)' : 'rgba(20,34,54,0.5)';
+      for (const t of deco.trees) {
+        const sx = w2sX(t.x);
+        ctx.fillRect(sx - 4, GROUND_Y - 26 * t.s, 8, 26 * t.s);
+        ctx.beginPath();
+        ctx.arc(sx, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
 
-  // 地面
-  // 地面仅在地图范围内绘制，边缘截止；边缘外下方为虚空（与背景相同）
+  // 地面（仅地图范围内，边缘截止；边缘外为虚空，与背景相同）
   const gx0 = w2sX(0), gx1 = w2sX(MAP_W);
   if (gx1 > 0 && gx0 < W) {
     const gLeft = Math.max(0, gx0), gRight = Math.min(W, gx1);
@@ -1790,54 +1976,20 @@ function drawBackground() {
     ctx.fillStyle = th.groundEdge;
     ctx.fillRect(gLeft, GROUND_Y, gRight - gLeft, 5);
   }
-
-  // 草地装饰（树/花）或雪地（松树/飘雪）或黄昏/夜晚（暗色植被）
-  if (map.snow) {
-    for (const p of deco.pines) {
-      const sx = w2sX(p.x);
-      ctx.fillStyle = '#e8f2f9';
-      ctx.fillRect(sx - 5, GROUND_Y - 12, 10, 12);
-      ctx.fillStyle = '#bfe0ef';
-      for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(sx - 26 * p.s + i * 8, GROUND_Y - 8 - i * 18);
-        ctx.lineTo(sx, GROUND_Y - 52 * p.s - i * 8);
-        ctx.lineTo(sx + 26 * p.s - i * 8, GROUND_Y - 8 - i * 18);
-        ctx.closePath(); ctx.fill();
-      }
-    }
-    // 飘雪
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    for (const f of deco.flakes) {
-      const fy = (f.y + frame * f.sp) % 500;
-      ctx.fillRect(w2sX((f.x + Math.sin(frame / 40 + f.x) * 30 + MAP_W) % MAP_W), fy, 2.5, 2.5);
-    }
-  } else if (map === MAPS.grass) {
-    for (const t of deco.trees) {
-      const sx = w2sX(t.x);
-      ctx.fillStyle = '#8a6a44';
-      ctx.fillRect(sx - 5, GROUND_Y - 34 * t.s, 10, 34 * t.s);
-      ctx.fillStyle = '#4e9a4e';
-      ctx.beginPath();
-      ctx.arc(sx, GROUND_Y - 44 * t.s, 22 * t.s, 0, Math.PI * 2);
-      ctx.arc(sx - 16 * t.s, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
-      ctx.arc(sx + 16 * t.s, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    for (const f of deco.flowers) {
-      const sx = w2sX(f.x);
-      ctx.fillStyle = f.c;
-      ctx.beginPath(); ctx.arc(sx, f.y, 4, 0, Math.PI * 2); ctx.fill();
-    }
-  } else {
-    ctx.fillStyle = map === MAPS.dusk ? 'rgba(70,80,60,0.5)' : 'rgba(20,34,54,0.5)';
-    for (const t of deco.trees) {
-      const sx = w2sX(t.x);
-      ctx.fillRect(sx - 4, GROUND_Y - 26 * t.s, 8, 26 * t.s);
-      ctx.beginPath();
-      ctx.arc(sx, GROUND_Y - 34 * t.s, 16 * t.s, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  // 边缘轻微雾化，提示前方虚空（很淡，不回到黑边）
+  if (viewport.offsetX <= 0.5) {
+    const lg = ctx.createLinearGradient(0, 0, 40, 0);
+    lg.addColorStop(0, 'rgba(30,50,80,0.14)');
+    lg.addColorStop(1, 'rgba(30,50,80,0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(0, 0, 40, H);
+  }
+  if (viewport.offsetX >= MAP_W - viewport.viewWidth - 0.5) {
+    const rg = ctx.createLinearGradient(W - 40, 0, W, 0);
+    rg.addColorStop(0, 'rgba(30,50,80,0)');
+    rg.addColorStop(1, 'rgba(30,50,80,0.14)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(W - 40, 0, 40, H);
   }
 }
 
@@ -1924,12 +2076,26 @@ function drawCharacter(f) {
   const cw = 100 * viewport.scale;
   const ch = 125 * viewport.scale;
   const topY = f.y - ch; // 脚底始终贴地（缩放后）
+  let scx = 1, scy = 1;
+  if (f.squash > 0) { scx = 1 + 0.25 * f.squash / 6; scy = 1 - 0.25 * f.squash / 6; }
+  else if (f.squash < 0) { scx = 1 + 0.18 * f.squash / 7; scy = 1 - 0.18 * f.squash / 7; }
+  // 能量满发光
+  if (f.energy >= ENERGY_MAX && !f.dead) {
+    const ga = 0.16 + 0.08 * Math.sin(frame / 8);
+    ctx.fillStyle = 'rgba(255,215,0,' + ga.toFixed(3) + ')';
+    ctx.beginPath(); ctx.ellipse(sx, f.y - ch * 0.5, cw * 0.8, ch * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.save();
+  ctx.translate(sx, f.y);
+  ctx.scale(scx, scy);
+  ctx.translate(-sx, -f.y);
   if (img && img.complete && img.naturalWidth > 0) {
     ctx.drawImage(img, sx - cw / 2, topY, cw, ch);
   } else {
     ctx.fillStyle = f.color;
     ctx.fillRect(sx - cw / 2, topY, cw, ch);
   }
+  ctx.restore();
   // 受击白闪
   if (f.hitFlash > 0) {
     ctx.globalAlpha = 0.5 * (f.hitFlash / 4);
@@ -2059,7 +2225,7 @@ function drawHUD() {
   drawBuffs(W - 40 - barW, top + 74, p2, 'right');
   ctx.font = 'bold 15px "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillStyle = (THEMES[settings.theme] ? THEMES[settings.theme].accent : '#ffffff');
   ctx.fillText('得分 ' + matchScore, W / 2, top + 14);
 }
 
@@ -2114,7 +2280,7 @@ function drawEnergy(x, y, f, side) {
   const ready = ratio >= 1;
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.roundRect(x, y, w, h, 4); ctx.fill();
-  ctx.fillStyle = ready ? '#ffd700' : '#c9a227';
+  ctx.fillStyle = ready ? (THEMES[settings.theme] ? THEMES[settings.theme].accent : '#ffd700') : '#c9a227';
   ctx.beginPath(); ctx.roundRect(x, y, w * ratio, h, 4); ctx.fill();
   ctx.font = '11px "Microsoft YaHei", sans-serif';
   ctx.fillStyle = '#fff';
@@ -2135,6 +2301,37 @@ function drawBuffs(x, y, f, side) {
   ctx.fillStyle = '#fff';
   ctx.textAlign = side === 'left' ? 'left' : 'right';
   ctx.fillText(items.join('  '), side === 'left' ? x : x + 320, y + 8);
+}
+
+function drawAfterimages() {
+  for (let i = 0; i < afterimages.length; i++) {
+    const a = afterimages[i];
+    const img = images[CHAR_SPECS[a.char].folder + '/' + CHAR_SPECS[a.char].frames[String(a.facing)].mv[0] + '.png'];
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.globalAlpha = 0.22 * a.life / 14;
+      ctx.drawImage(img, w2sX(a.x) - 50 * viewport.scale, a.y - 125 * viewport.scale, 100 * viewport.scale, 125 * viewport.scale);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawCountdown() {
+  if (countdownTimer <= 0 || paused || gameOver) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(0, 0, W, H);
+  let txt = '';
+  if (countdownTimer > 110) txt = 'VS!';
+  else if (countdownTimer > 90) txt = '3';
+  else if (countdownTimer > 60) txt = '2';
+  else if (countdownTimer > 30) txt = '1';
+  else txt = 'GO!';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 84px "Microsoft YaHei", sans-serif';
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = 10;
+  ctx.strokeText(txt, W / 2, H / 2 + 12);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(txt, W / 2, H / 2 + 12);
 }
 
 function drawTutorial() {
@@ -2228,12 +2425,14 @@ function draw() {
   drawBombs();
   drawExplosions();
   drawSpecialAreas();
+  drawAfterimages();
   drawCharacter(p1);
   drawCharacter(p2);
   drawParticles();
   drawDamageNumbers();
   ctx.restore();
   drawFlashes();
+  drawCountdown();
   drawHUD();
   if (tutorialTimer > 0 && !gameOver) drawTutorial();
   drawHint();
