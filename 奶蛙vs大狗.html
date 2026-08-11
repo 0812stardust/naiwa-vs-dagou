@@ -171,10 +171,7 @@
       <h2 id="readyTitle">准 备</h2>
       <div class="setting-row"><span>🗺️ 地图</span><button id="btnPickMap">选择地图</button></div>
       <div id="charRow" class="setting-row hidden"><span>角色</span>
-        <div class="stepper">
-          <button id="charFrog" class="pill">🐸 奶蛙</button>
-          <button id="charDog" class="pill">🐶 大狗</button>
-        </div>
+        <div class="stepper" id="charBtns"></div>
       </div>
       <div id="dummyRow" class="setting-row hidden"><span>木桩</span>
         <div class="stepper">
@@ -286,8 +283,8 @@ const MAP_W = 1800;
 const MARGIN = 50;
 const GRAVITY = 0.45;
 const BASE_JUMP = -12.25;
-const ACCEL = 0.5;
-const FRICTION = 0.85;
+const ACCEL = 0.55; // 加速度微调（更跟手）
+const FRICTION = 0.88; // 摩擦微调（更跟手但不失控）
 const ANIM_CYCLE = 12;
 const NORMAL_ATK  = { total: 18, activeStart: 0,  activeEnd: 10, range: 60 };
 const SPECIAL_ATK = { total: 26, activeStart: 7,  activeEnd: 21, range: 120 };
@@ -360,7 +357,7 @@ function standables() {
 /* ================= 角色素材与差异化 ================= */
 const CHAR_SPECS = {
   frog: {
-    folder: 'naiwa', color: '#6ecf4a', label: '奶蛙',
+    folder: 'naiwa', color: '#6ecf4a', label: '奶蛙', emoji: '🐸',
     stats: { hp: 100, speedMult: 1.10, atkDmg: 8, atkCd: 33, spDmg: 22, spCd: 210, jumpMult: 1.05, trait: 'doubleJump' },
     frames: {
       '-1': { atk: 'latk', crouch: 'ld', special: 'lluf', jump: 'lskp', mv: ['lmv1', 'lmv2', 'lmv3'] },
@@ -368,7 +365,7 @@ const CHAR_SPECS = {
     },
   },
   dog: {
-    folder: 'dagou', color: '#ff8c00', label: '大狗',
+    folder: 'dagou', color: '#ff8c00', label: '大狗', emoji: '🐶',
     stats: { hp: 100, speedMult: 0.92, atkDmg: 10, atkCd: 42, spDmg: 30, spCd: 360, jumpMult: 0.95, trait: 'crit' },
     frames: {
       '-1': { atk: 'LATK', crouch: 'LD', special: 'LLAF', jump: 'LSKP', mv: ['LMV1', 'LMV2', 'LMV3'] },
@@ -376,6 +373,11 @@ const CHAR_SPECS = {
     },
   },
 };
+/* 角色注册表驱动：新增第 3 个角色只需向 CHAR_SPECS 加条目，选角界面自动出现 */
+const CHAR_LIST = Object.keys(CHAR_SPECS);
+function getOtherChar(key) {
+  return CHAR_LIST.find(k => k !== key) || CHAR_LIST[0];
+}
 
 const images = {};
 const bgImages = {};
@@ -537,7 +539,7 @@ function showMenu() {
 }
 function showReady() {
   $('readyTitle').textContent = mode === 'vsAI' ? '人机对战' : (mode === 'vsP2' ? '双人对战' : '训练模式');
-  $('charRow').classList.toggle('hidden', mode !== 'vsP2');
+  $('charRow').classList.remove('hidden'); // 三种模式都可选角色
   $('dummyRow').classList.toggle('hidden', mode !== 'train');
   p1Char = 'frog';
   updateReadyUI();
@@ -550,23 +552,38 @@ function charStatText(ch) {
   if (s.trait === 'crit') t += '\n特性：每 15 秒下一次攻击暴击（伤害 +50%）';
   return t;
 }
+function renderCharBtns() {
+  const wrap = $('charBtns');
+  let html = '';
+  for (const key of CHAR_LIST) {
+    const c = CHAR_SPECS[key];
+    html += '<button class="pill char-btn' + (p1Char === key ? ' selected' : '') + '" data-char="' + key + '">' + c.emoji + ' ' + c.label + '</button>';
+  }
+  wrap.innerHTML = html;
+  const btns = wrap.querySelectorAll('.char-btn');
+  for (const b of btns) {
+    b.addEventListener('click', function () {
+      p1Char = b.getAttribute('data-char');
+      updateReadyUI();
+    });
+  }
+}
 function updateReadyUI() {
   $('btnPickMap').textContent = MAPS[readyMap].name;
-  $('charFrog').classList.toggle('selected', p1Char === 'frog');
-  $('charDog').classList.toggle('selected', p1Char === 'dog');
+  renderCharBtns();
   $('dummyStand').classList.toggle('selected', trainDummyMode === 'stand');
   $('dummyFight').classList.toggle('selected', trainDummyMode === 'fight');
   $('dummyMove').classList.toggle('selected', trainDummyMode === 'move');
+  const p2Ch = getOtherChar(p1Char);
   if (mode === 'vsP2') {
-    const p2Ch = p1Char === 'frog' ? 'dog' : 'frog';
     $('charHint').textContent = 'P1：' + CHAR_SPECS[p1Char].label + '　P2：' + CHAR_SPECS[p2Ch].label;
     $('charStatHint').textContent = 'P1 ' + charStatText(p1Char) + '\nP2 ' + charStatText(p2Ch);
   } else if (mode === 'train') {
-    $('charHint').textContent = '玩家：奶蛙　对手：木桩（' + (trainDummyMode === 'fight' ? '反击' : trainDummyMode === 'move' ? '移动' : '站桩') + '模式，可重置血量）';
-    $('charStatHint').textContent = charStatText('frog');
+    $('charHint').textContent = '玩家：' + CHAR_SPECS[p1Char].label + '　对手：木桩（' + (trainDummyMode === 'fight' ? '反击' : trainDummyMode === 'move' ? '移动' : '站桩') + '模式，可重置血量）';
+    $('charStatHint').textContent = charStatText(p1Char);
   } else {
-    $('charHint').textContent = '玩家：奶蛙　对手：大狗（AI）';
-    $('charStatHint').textContent = charStatText('frog');
+    $('charHint').textContent = '玩家：' + CHAR_SPECS[p1Char].label + '　对手：' + CHAR_SPECS[p2Ch].label + '（AI）';
+    $('charStatHint').textContent = charStatText(p1Char);
   }
 }
 /* 地图二级菜单 */
@@ -648,8 +665,6 @@ $('btnExit').addEventListener('click', function () {
 $('btnBackMenu').addEventListener('click', showMenu);
 $('btnPickMap').addEventListener('click', showMapSelect);
 $('btnMapBack').addEventListener('click', function () { showScreen('readyScreen'); });
-$('charFrog').addEventListener('click', function () { p1Char = 'frog'; updateReadyUI(); });
-$('charDog').addEventListener('click', function () { p1Char = 'dog'; updateReadyUI(); });
 $('dummyStand').addEventListener('click', function () { trainDummyMode = 'stand'; settings.trainDummy = 'stand'; saveJSON('game_settings', settings); updateReadyUI(); });
 $('dummyFight').addEventListener('click', function () { trainDummyMode = 'fight'; settings.trainDummy = 'fight'; saveJSON('game_settings', settings); updateReadyUI(); });
 $('dummyMove').addEventListener('click', function () { trainDummyMode = 'move'; settings.trainDummy = 'move'; saveJSON('game_settings', settings); updateReadyUI(); });
@@ -838,6 +853,11 @@ function makeFighter(char, controls, x) {
     hitFlash: 0,
     squash: 0,            // 弹性形变（>0 压扁 / <0 拉长）
     wasAir: false,
+    bufAtk: 0,            // 攻击输入缓冲
+    bufJump: 0,           // 跳跃输入缓冲
+    defendT: 0,           // 木桩/防御计时
+    launched: false,      // 被击飞标志
+    getup: 0,             // 倒地帧数（不可行动、无敌）
     lives: settings.lives, maxLives: settings.lives,
     dead: false, deadTimer: 0,
     dummy: controls === 'dummy',
@@ -955,6 +975,10 @@ function updateFighter(f, input) {
   if (f.hitFlash > 0) f.hitFlash--;
   if (f.techCd > 0) f.techCd--;
   if (f.squash > 0) f.squash--; else if (f.squash < 0) f.squash++;
+  if (f.getup > 0) f.getup--;
+  // 输入缓冲：按下后暂存 8 帧，落地/硬直结束自动执行
+  if (input.attack) f.bufAtk = 8; else if (f.bufAtk > 0) f.bufAtk--;
+  if (input.jump) f.bufJump = 8; else if (f.bufJump > 0) f.bufJump--;
 
   if (f.spawnDrop || f.inVoid || countdownTimer > 0) {
     input = { move: 0, jump: false, jumpHeld: false, crouch: false, attack: false, special: false, bomb: false, face: undefined };
@@ -965,11 +989,17 @@ function updateFighter(f, input) {
     if (f.bombTimer <= 0) { f.hasBomb = false; explode(f.x, f.y - 60); }
   }
 
-  const attacking = !!f.atkType;
+  let attacking = !!f.atkType;
   if (attacking) {
     const cfg = f.atkType === 'normal' ? NORMAL_ATK : SPECIAL_ATK;
     const elapsed = frame - f.atkStart;
     if (elapsed >= cfg.total) f.atkType = null;
+    // 取消后摇：普攻/空中攻击收尾 4 帧可按攻击衔接下一招
+    else if ((f.atkType === 'normal' || f.atkType === 'airatk') && elapsed >= cfg.total - 4 && (input.attack || f.bufAtk > 0)) {
+      f.bufAtk = 0;
+      startAttack(f, f.onGround ? 'normal' : 'airatk');
+      attacking = true;
+    }
     if (f.atkType === 'special' && !f.released && elapsed >= cfg.activeStart) {
       f.released = true;
       addScreenFlash('special');
@@ -979,17 +1009,20 @@ function updateFighter(f, input) {
     }
   }
 
-  // 受身：被击飞后按跳跃键翻滚脱身
-  if (f.hitstun > 0 && (input.jump || input.jumpHeld) && f.techCd <= 0 && !f.dummy) {
+  // 受身：被击飞或倒地时按跳跃键翻滚脱身（带短顿帧）
+  if ((f.hitstun > 0 || f.getup > 0) && (input.jump || input.jumpHeld || f.bufJump > 0) && f.techCd <= 0 && !f.dummy) {
+    f.bufJump = 0;
     f.hitstun = 0;
+    f.getup = 0;
     f.invincible = Math.max(f.invincible, 30);
     f.vy = -6;
     f.vx = -f.facing * 3;
     f.techCd = TECH_CD;
+    hitstop = Math.max(hitstop, 3); // 受身顿帧
     spawnParticle(f.x, f.y - 50, '#ffffff');
     SFX.tech();
   }
-  if (f.hitstun > 0 || attacking) {
+  if (f.hitstun > 0 || attacking || f.getup > 0) {
     f.hitstun = Math.max(0, f.hitstun - 1);
     input = { move: 0, jump: false, jumpHeld: false, crouch: false, attack: false, special: false, bomb: false, face: undefined };
   }
@@ -1010,7 +1043,8 @@ function updateFighter(f, input) {
 
   /* ---- 重力与跳跃 ---- */
     f.vy += GRAVITY;
-    if (input.jump && !f.crouching && !attacking && f.chainTimer <= 0) {
+    if ((input.jump || f.bufJump > 0) && !f.crouching && !attacking && f.chainTimer <= 0) {
+      f.bufJump = 0;
       if (f.onGround) {
         f.vy = BASE_JUMP * f.stats.jumpMult;
         f.onGround = false;
@@ -1028,6 +1062,7 @@ function updateFighter(f, input) {
 
     /* 跳下平台（按住下+跳跃） */
     if (input.crouch && input.jump && f.onGround && f.standY < GROUND_Y) {
+      f.bufJump = 0; // 跳下平台会消耗跳跃意图，避免误触发二段跳
       f.dropThrough = true;
       f.onGround = false;
       f.y += 6;
@@ -1038,12 +1073,16 @@ function updateFighter(f, input) {
     /* 落地检测（地面 → 平台 → 蹦床） */
     let landed = false;
     if (f.vy >= 0 && f.y >= GROUND_Y && f.x > 0 && f.x < MAP_W) {
-      f.y = GROUND_Y; f.vy = 0; f.onGround = true; f.standY = GROUND_Y; f.dropThrough = false; if (f.wasAir) f.squash = 6; landed = true;
+      f.y = GROUND_Y; f.vy = 0; f.onGround = true; f.standY = GROUND_Y; f.dropThrough = false; if (f.wasAir) f.squash = 6;
+      if (f.wasAir && f.launched) { f.launched = false; f.getup = 10; f.invincible = Math.max(f.invincible, 24); }
+      landed = true;
     }
     if (!landed && f.vy >= 0 && !f.dropThrough) {
       for (const pl of standables()) {
         if (f.x + 30 > pl.x && f.x - 30 < pl.x + pl.w && f.y >= pl.y && (f.y - f.vy) <= pl.y + 4) {
-          f.y = pl.y; f.vy = 0; f.onGround = true; f.standY = pl.y; if (f.wasAir) f.squash = 6; landed = true;
+          f.y = pl.y; f.vy = 0; f.onGround = true; f.standY = pl.y; if (f.wasAir) f.squash = 6;
+          if (f.wasAir && f.launched) { f.launched = false; f.getup = 10; f.invincible = Math.max(f.invincible, 24); }
+          landed = true;
           break;
         }
       }
@@ -1060,7 +1099,8 @@ function updateFighter(f, input) {
   }
 
   if (!attacking) {
-    if (input.attack && f.attackCd === 0) {
+    if ((input.attack || f.bufAtk > 0) && f.attackCd === 0) {
+      f.bufAtk = 0;
       if (!f.onGround && input.crouch) startAttack(f, 'smash');   // 空中 S+J 下砸
       else if (!f.onGround) startAttack(f, 'airatk');             // 空中 J 空中攻击
       else startAttack(f, 'normal');
@@ -1091,10 +1131,16 @@ function updateDummy(f) {
     if (frame - f.atkStart >= cfg.total) f.atkType = null;
   }
   f.attackCd = Math.max(0, f.attackCd - 1);
+  if (f.defendT > 0) f.defendT--;
+  f.crouching = f.defendT > 0;
   f.y = GROUND_Y; f.standY = GROUND_Y; f.onGround = true;
   const p = p1;
   const dist = Math.abs(p.x - f.x);
-  if (trainDummyMode === 'fight' && dist < 90 && f.attackCd === 0 && p.hp > 0 && !p.dead) {
+  // 反击模式：玩家出招时偶尔下蹲防御
+  if (trainDummyMode === 'fight' && p.atkType && dist < 90 && f.defendT <= 0 && Math.random() < 0.06) {
+    f.defendT = 20;
+  }
+  if (trainDummyMode === 'fight' && dist < 90 && f.attackCd === 0 && p.hp > 0 && !p.dead && f.defendT <= 0) {
     startAttack(f, 'normal');
     f.attackCd = f.stats.atkCd;
   }
@@ -1121,6 +1167,8 @@ function updateDead(f) {
     f.crouching = false;
     f.dropThrough = false;
     f.inVoid = false;
+    f.launched = false;
+    f.getup = 0;
     f.atkType = null;
     f.facing = f.homeFacing;
     f.invincible = RESPAWN_INVINCIBLE;
@@ -1187,8 +1235,9 @@ function updateAI() {
     }
   }
 
-  // AI 也会去捡道具（护盾/血包/红心/炸弹）
+  // AI 也会去捡道具（护盾/血包/红心/炸弹），但仅在近处且玩家未出招时，避免脱离战斗
   if (pickup && !e.dead && e.hp < e.maxHp * 0.9 &&
+      Math.abs(pickup.x - e.x) < 400 && !p.atkType &&
       (pickup.type === 'health' || pickup.type === 'shield' || pickup.type === 'heart' || pickup.type === 'bomb') &&
       aiTimer % 15 < 3) {
     e.aiPlan = 'pickup';
@@ -1241,10 +1290,23 @@ function updateAI() {
       if (dist < 70) chance += 0.10 * P.spMult;
       if (Math.random() < chance) special = true;
     }
+    // 躲大招：玩家大招前摇时高概率后撤/跳跃躲避
+    if (p.atkType === 'special' && dist < 200) {
+      const sp = settings.aiDifficulty === 'hard' ? 0.7 : (settings.aiDifficulty === 'easy' ? 0.35 : 0.55);
+      if (Math.random() < sp) {
+        move = -dir;
+        if (e.onGround && Math.random() < 0.6) jump = true;
+        attack = false; special = false;
+      }
+    }
     if (p.atkType && dist < 95 && e.onGround) {
       const r = Math.random();
       if (r < P.defend) { crouch = true; attack = false; special = false; jump = false; }
       else if (r < P.defend + P.dodge) { jump = true; attack = false; special = false; }
+    }
+    // 暴击就绪时更主动出招
+    if (e.stats.trait === 'crit' && e.critTimer <= 0 && dist < P.atkDist + 30 && e.attackCd === 0 && !attack && e.onGround) {
+      if (Math.random() < 0.5) attack = true;
     }
     if (p.invincible > 0 && dist < 65 && Math.random() < 0.5) attack = false;
     if (p.crouching && attack && Math.random() < (settings.aiDifficulty === 'hard' ? 0.7 : 0.4)) attack = false;
@@ -1273,6 +1335,8 @@ function resolveAttack(atk, def) {
     if (atk.atkType === 'special') dmg = atk.stats.spDmg;
     else if (atk.atkType === 'smash') dmg = Math.round(atk.stats.atkDmg * 1.5);
     else dmg = atk.stats.atkDmg;
+    // 连段伤害衰减：同一连段内逐击递减，最低 50%（防无限连）
+    if (atk.combo > 0) dmg = Math.round(dmg * Math.max(0.5, 1 - 0.08 * atk.combo));
     if (atk.powerTimer > 0) dmg *= 2;
     let isCrit = false;
     if (atk.stats.trait === 'crit' && atk.critTimer <= 0) {
@@ -1347,6 +1411,7 @@ function applyDamage(def, dmg, opts) {
     }
     const knock = opts.attacker ? opts.attacker.facing * (opts.attacker.stats.trait === 'heavyKnock' ? 2.5 : 1.5) : (opts.knock || 0);
     def.vx += knock;
+    if (opts.attacker && !def.dummy && (!def.onGround || Math.abs(knock) >= 2.5)) def.launched = true; // 空中被击/重击退 → 落地触发倒地保护
   }
   if (def.hp <= 0 && !def.dummy) {
     // 击杀：目标被击飞
@@ -1591,13 +1656,13 @@ function addScore(v) { if (mode === 'train') return; matchScore += v; }
 /* ================= 战斗 ================= */
 function startBattle() {
   if (mode === 'vsAI') {
-    p1 = makeFighter('frog', 'p1', 200);
-    p2 = makeFighter('dog', 'ai', 1600);
+    p1 = makeFighter(p1Char, 'p1', 200);
+    p2 = makeFighter(getOtherChar(p1Char), 'ai', 1600);
   } else if (mode === 'vsP2') {
     p1 = makeFighter(p1Char, 'p1', 200);
-    p2 = makeFighter(p1Char === 'frog' ? 'dog' : 'frog', 'p2', 1600);
+    p2 = makeFighter(getOtherChar(p1Char), 'p2', 1600);
   } else {
-    p1 = makeFighter('frog', 'p1', 200);
+    p1 = makeFighter(p1Char, 'p1', 200);
     p2 = makeFighter('dog', 'dummy', 1000);
     p2.hp = 999; p2.maxHp = 999; p2.lives = 999; p2.dummy = true;
     p1.lives = 999; p1.maxLives = 999;
@@ -1625,8 +1690,8 @@ function startBattle() {
   matchTime = 0;
   trainDamage = 0;
   acc = 0;
-  try { tutorialTimer = localStorage.getItem('tutorial_shown') ? 0 : 300; localStorage.setItem('tutorial_shown', '1'); } catch (e) { tutorialTimer = 300; }
-  countdownTimer = 130; // 3-2-1 GO 倒计时
+  try { tutorialTimer = localStorage.getItem('tutorial_shown') ? 0 : 240; localStorage.setItem('tutorial_shown', '1'); } catch (e) { tutorialTimer = 240; }
+  countdownTimer = 90; // 3-2-1 GO 倒计时
   setPaused(false);
   $('bgmSlider').value = bgmVolume;
   $('sfxSlider').value = sfxVolume;
@@ -1797,6 +1862,9 @@ function drawBackground() {
   const hasBg = bimg && bimg.complete && bimg.naturalWidth > 0;
 
   if (hasBg) {
+    // 先整屏铺背景底色，避免背景图未覆盖区域（虚空/视口边缘）残留上一帧画面
+    ctx.fillStyle = th.skyBottom;
+    ctx.fillRect(0, 0, W, H);
     // 背景插画作为远景垫底（随世界视口平移），再叠加中景/近景装饰
     ctx.drawImage(bimg, w2sX(0), 0, MAP_W * viewport.scale, H);
     if (map.snow) {
@@ -1978,21 +2046,6 @@ function drawBackground() {
     ctx.fillStyle = th.groundEdge;
     ctx.fillRect(gLeft, GROUND_Y, gRight - gLeft, 5);
   }
-  // 边缘轻微雾化，提示前方虚空（很淡，不回到黑边）
-  if (viewport.offsetX <= 0.5) {
-    const lg = ctx.createLinearGradient(0, 0, 40, 0);
-    lg.addColorStop(0, 'rgba(30,50,80,0.14)');
-    lg.addColorStop(1, 'rgba(30,50,80,0)');
-    ctx.fillStyle = lg;
-    ctx.fillRect(0, 0, 40, H);
-  }
-  if (viewport.offsetX >= MAP_W - viewport.viewWidth - 0.5) {
-    const rg = ctx.createLinearGradient(W - 40, 0, W, 0);
-    rg.addColorStop(0, 'rgba(30,50,80,0)');
-    rg.addColorStop(1, 'rgba(30,50,80,0.14)');
-    ctx.fillStyle = rg;
-    ctx.fillRect(W - 40, 0, 40, H);
-  }
 }
 
 /* 多层元素：平台/箱子/梯子/蹦床 */
@@ -2064,6 +2117,7 @@ function drawExplosions() {
 }
 
 function drawCharacter(f) {
+  if (f.inVoid) return; // 进入虚空后不再绘制，虚空与背景保持一致
   const isDead = f.dead;
   if (isDead) ctx.globalAlpha = 0.6;
   const frameName = currentFrameName(f);
@@ -2308,6 +2362,7 @@ function drawBuffs(x, y, f, side) {
 function drawAfterimages() {
   for (let i = 0; i < afterimages.length; i++) {
     const a = afterimages[i];
+    if (a.x < 0 || a.x > MAP_W) continue; // 虚空内不绘制残影
     const img = images[CHAR_SPECS[a.char].folder + '/' + CHAR_SPECS[a.char].frames[String(a.facing)].mv[0] + '.png'];
     if (img && img.complete && img.naturalWidth > 0) {
       ctx.globalAlpha = 0.22 * a.life / 14;
