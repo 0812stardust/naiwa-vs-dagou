@@ -1797,6 +1797,9 @@ function drawBackground() {
   const hasBg = bimg && bimg.complete && bimg.naturalWidth > 0;
 
   if (hasBg) {
+    // 先整屏铺背景底色，避免背景图未覆盖区域（虚空/视口边缘）残留上一帧画面
+    ctx.fillStyle = th.skyBottom;
+    ctx.fillRect(0, 0, W, H);
     // 背景插画作为远景垫底（随世界视口平移），再叠加中景/近景装饰
     ctx.drawImage(bimg, w2sX(0), 0, MAP_W * viewport.scale, H);
     if (map.snow) {
@@ -1977,21 +1980,13 @@ function drawBackground() {
     ctx.fillRect(gLeft, GROUND_Y, gRight - gLeft, H - GROUND_Y);
     ctx.fillStyle = th.groundEdge;
     ctx.fillRect(gLeft, GROUND_Y, gRight - gLeft, 5);
-  }
-  // 边缘轻微雾化，提示前方虚空（很淡，不回到黑边）
-  if (viewport.offsetX <= 0.5) {
-    const lg = ctx.createLinearGradient(0, 0, 40, 0);
-    lg.addColorStop(0, 'rgba(30,50,80,0.14)');
-    lg.addColorStop(1, 'rgba(30,50,80,0)');
-    ctx.fillStyle = lg;
-    ctx.fillRect(0, 0, 40, H);
-  }
-  if (viewport.offsetX >= MAP_W - viewport.viewWidth - 0.5) {
-    const rg = ctx.createLinearGradient(W - 40, 0, W, 0);
-    rg.addColorStop(0, 'rgba(30,50,80,0)');
-    rg.addColorStop(1, 'rgba(30,50,80,0.14)');
-    ctx.fillStyle = rg;
-    ctx.fillRect(W - 40, 0, 40, H);
+    // 岛屿悬崖侧壁：地面像孤岛一样在边缘截止
+    ctx.fillStyle = 'rgba(45,38,30,0.55)';
+    if (gx0 >= 0 && gx0 <= W) ctx.fillRect(gx0 - 14, GROUND_Y, 14, H - GROUND_Y);
+    if (gx1 >= 0 && gx1 <= W) ctx.fillRect(gx1, GROUND_Y, 14, H - GROUND_Y);
+    // 岛屿底部厚度
+    ctx.fillStyle = 'rgba(35,30,24,0.65)';
+    ctx.fillRect(gLeft, H - 9, gRight - gLeft, 9);
   }
 }
 
@@ -2064,6 +2059,7 @@ function drawExplosions() {
 }
 
 function drawCharacter(f) {
+  if (f.inVoid) return; // 进入虚空后不再绘制，虚空与背景保持一致
   const isDead = f.dead;
   if (isDead) ctx.globalAlpha = 0.6;
   const frameName = currentFrameName(f);
@@ -2308,6 +2304,7 @@ function drawBuffs(x, y, f, side) {
 function drawAfterimages() {
   for (let i = 0; i < afterimages.length; i++) {
     const a = afterimages[i];
+    if (a.x < 0 || a.x > MAP_W) continue; // 虚空内不绘制残影
     const img = images[CHAR_SPECS[a.char].folder + '/' + CHAR_SPECS[a.char].frames[String(a.facing)].mv[0] + '.png'];
     if (img && img.complete && img.naturalWidth > 0) {
       ctx.globalAlpha = 0.22 * a.life / 14;
