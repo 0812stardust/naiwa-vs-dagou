@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>奶蛙 vs 大狗 v0.82</title>
+<title>奶蛙 vs 大狗 v0.83</title>
 <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22short_name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%2F%22%7D'>
 <style>
   /* ===== v0.7 设计系统（CSS 变量 + 四套主题） ===== */
@@ -168,7 +168,7 @@
     <div class="card">
       <h1>奶蛙 vs 大狗</h1>
       <p class="sub">🐸 清新格斗对战 🐶</p>
-      <p class="ver">v0.82</p>
+      <p class="ver">v0.83</p>
       <input id="nameInput" type="text" maxlength="12" placeholder="输入你的昵称">
       <button id="btnLogin" class="mode-card" style="background:linear-gradient(135deg,#ffd76a,#ffb75e);color:#7a5200;">进入游戏</button>
     </div>
@@ -179,7 +179,7 @@
     <div class="card">
       <h1>奶蛙 vs 大狗</h1>
       <p class="sub" id="menuGreeting">欢迎！</p>
-      <p class="ver">v0.82</p>
+      <p class="ver">v0.83</p>
       <button id="btnStart" class="mode-card">🤖 人机对战</button>
       <button id="btnVsP2" class="mode-card">👥 双人对战</button>
       <button id="btnTrain" class="mode-card">🎯 训练模式</button>
@@ -457,7 +457,7 @@ function loadNum(key, def) {
 }
 
 const ACTIONS = ['left', 'right', 'jump', 'crouch', 'attack', 'special', 'bomb'];
-const ACTION_LABEL = { left: '左移', right: '右移', jump: '跳跃', crouch: '下蹲', attack: '普攻', special: '大招', bomb: '放置炸弹' };
+const ACTION_LABEL = { left: '左移', right: '右移', jump: '跳跃', crouch: '下蹲', attack: '普攻', special: '大招', bomb: '投掷炸弹' };
 const DEFAULT_BINDINGS = {
   p1: { left: 'a', right: 'd', jump: 'w', crouch: 's', attack: 'j', special: 'k', bomb: 'm' },
   p2: { left: 'arrowleft', right: 'arrowright', jump: 'arrowup', crouch: 'arrowdown', attack: '-', special: '=', bomb: '[' },
@@ -934,6 +934,11 @@ function makeFighter(char, controls, x) {
     state: 'idle',
     aiState: 'idle',
     aiJumped: false,
+    aiNav: null,          // v0.83：跨层寻路目标 {targetX, surface, mode}
+    aiNavTimer: 0,        // 寻路目标计时（到期重规划）
+    navJumped: false,     // 本次寻路是否已起跳（落地后重置）
+    navFail: 0,           // 连续升层失败次数（达到阈值改待机）
+    bombRetreat: 0,       // 扔弹后撤计时（v0.83）
     aiPlan: 'chase',           // chase / ladder / climb / descend / jumpUp
   };
 }
@@ -982,6 +987,116 @@ function startAttack(f, kind) {
   f.hitDone = false;
   f.released = false;
   f.crouching = false;
+}
+function attackCfg(t) {
+  if (t === 'normal') return NORMAL_ATK;
+  if (t === 'special') return SPECIAL_ATK;
+  if (t === 'airatk') return AIR_ATK;
+  if (t === 'smash') return SMASH_ATK;
+  return NORMAL_ATK;
+}
+function clampv(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+/* ================= v0.83 人机跨层寻路 ================= */
+function surfacesForNav() {
+  const list = [{ y: GROUND_Y, x0: 0, x1: MAP_W }];
+  for (const st of standables()) list.push({ y: st.y, x0: st.x, x1: st.x + st.w });
+  return list;
+}
+function fighterMaxJumpH(f) {
+  const s = f.stats;
+  const single = (BASE_JUMP * s.jumpMult) * (BASE_JUMP * s.jumpMult) / (2 * GRAVITY);
+  let h = single;
+  if (s.trait === 'doubleJump') {
+    const dbl = (BASE_JUMP * s.jumpMult * 0.9) * (BASE_JUMP * s.jumpMult * 0.9) / (2 * GRAVITY);
+    h += dbl * 0.8;
+  }
+  return h;
+}
+function fighterJumpRange(f) { return f.stats.trait === 'doubleJump' ? 190 : 130; }
+function reachable(a, b, f) {
+  if (b.y >= a.y) return false;               // 只能向上跳达
+  if (a.y - b.y > fighterMaxJumpH(f)) return false;
+  const gap = Math.max(0, Math.max(a.x0, b.x0) - Math.min(a.x1, b.x1));
+  return gap <= fighterJumpRange(f);
+}
+function surfaceUnder(e) {
+  const surfs = surfacesForNav();
+  for (const st of surfs) {
+    if (Math.abs(st.y - e.standY) < 2 && e.x >= st.x0 - 4 && e.x <= st.x1 + 4) return st;
+  }
+  return { y: GROUND_Y, x0: 0, x1: MAP_W };
+}
+function planAINav(e, p) {
+  const surfs = surfacesForNav();
+  const cur = { y: e.standY, x0: e.x - 40, x1: e.x + 40 };
+  let pSurf = null;
+  for (const st of surfs) {
+    if (Math.abs(st.y - p.standY) < 2 && p.x >= st.x0 && p.x <= st.x1) { pSurf = st; break; }
+  }
+  if (!pSurf) pSurf = { y: p.standY, x0: p.x - 60, x1: p.x + 60 };
+  e.aiNavTimer = 60;
+  e.navJumped = false;
+  e.navFail = 0;
+  if (p.standY < e.standY - 6) {
+    // 玩家在上：直达 → 1 跳中间面 → 否则待机
+    if (reachable(cur, pSurf, e)) {
+      e.aiPlan = 'nav';
+      e.aiNav = { targetX: clampv(p.x, pSurf.x0, pSurf.x1), surface: pSurf, mode: 'ascend' };
+      return;
+    }
+    let best = null, bestScore = Infinity;
+    for (const st of surfs) {
+      if (st.y >= e.standY - 2) continue;
+      if (!reachable(cur, st, e)) continue;
+      if (!reachable(st, pSurf, e)) continue;
+      const sc = Math.abs((st.x0 + st.x1) / 2 - p.x);
+      if (sc < bestScore) { best = st; bestScore = sc; }
+    }
+    if (best) {
+      e.aiPlan = 'nav';
+      e.aiNav = { targetX: clampv(p.x, best.x0, best.x1), surface: best, mode: 'ascend' };
+    } else {
+      e.aiPlan = 'hold';
+      e.aiNav = null;
+    }
+  } else {
+    // 玩家在下：走下平台
+    e.aiPlan = 'nav';
+    e.aiNav = { targetX: p.x, surface: null, mode: 'descend' };
+  }
+}
+function followAINav(e, p) {
+  let move = 0, jump = false;
+  const nav = e.aiNav;
+  if (!nav) return { move: 0, jump: false };
+  const st = nav.surface;
+  if (nav.mode === 'ascend' && st) {
+    if (Math.abs(e.standY - st.y) < 2 && e.onGround) {
+      if (Math.abs(e.standY - p.standY) < 6) { e.aiPlan = 'chase'; e.aiNav = null; }
+      else planAINav(e, p); // 到达中间面：继续向上
+      return { move: 0, jump: false };
+    }
+    move = nav.targetX > e.x ? 1 : (nav.targetX < e.x ? -1 : 0);
+    if (e.onGround) {
+      if (e.navJumped) {
+        // 跳了一次又落回原地 → 记失败，防无限空跳
+        e.navJumped = false;
+        e.navFail++;
+        if (e.navFail >= 4) { e.aiPlan = 'hold'; e.aiNav = null; return { move: 0, jump: false }; }
+      } else if (e.x >= st.x0 - 30 && e.x <= st.x1 + 30) {
+        jump = true;
+        e.navJumped = true;
+      }
+    } else if (e.stats.trait === 'doubleJump' && e.jumpsUsed === 1 && e.vy <= 2 &&
+               e.x >= st.x0 - 30 && e.x <= st.x1 + 30 && e.y > st.y + 10) {
+      jump = true; // 二段跳助力爬高层平台
+    }
+  } else if (nav.mode === 'descend') {
+    move = nav.targetX > e.x ? 1 : (nav.targetX < e.x ? -1 : 0);
+    if (e.onGround && Math.abs(e.standY - p.standY) < 6) { e.aiPlan = 'chase'; e.aiNav = null; }
+  }
+  return { move: move, jump: jump };
 }
 function attackBox(f, cfg) {
   if (f.atkType === 'smash') {
@@ -1067,7 +1182,7 @@ function updateFighter(f, input) {
     spawnParticle(f.x, f.y - 50, '#ffffff');
     SFX.tech();
   }
-  if (f.hitstun > 0 || attacking || f.getup > 0) {
+  if (f.hitstun > 0 || f.getup > 0) {
     f.hitstun = Math.max(0, f.hitstun - 1);
     input = { move: 0, jump: false, jumpHeld: false, crouch: false, attack: false, special: false, bomb: false, face: undefined };
   }
@@ -1077,10 +1192,14 @@ function updateFighter(f, input) {
 
   f.crouching = input.crouch && f.onGround && !attacking;
 
-  if (input.face !== undefined) f.facing = input.face;
-  else if (input.move !== 0) f.facing = input.move;
+  // v0.83：攻击活跃帧内锁定向朝，收尾阶段可随移动转向；攻击中可移动（移速不变）
+  const inActiveFrames = !!(f.atkType && (frame - f.atkStart) < attackCfg(f.atkType).activeEnd);
+  if (!inActiveFrames) {
+    if (input.face !== undefined) f.facing = input.face;
+    else if (input.move !== 0) f.facing = input.move;
+  }
 
-  f.moveDir = (!f.crouching && !attacking && f.chainTimer <= 0) ? input.move : 0;
+  f.moveDir = (!f.crouching && f.chainTimer <= 0) ? input.move : 0;
   f.vx += f.moveDir * effAccel(f);
   f.x += f.vx;
   f.vx *= FRICTION;
@@ -1088,8 +1207,9 @@ function updateFighter(f, input) {
 
   /* ---- 重力与跳跃 ---- */
     f.vy += GRAVITY;
-    if ((input.jump || f.bufJump > 0) && !f.crouching && !attacking && f.chainTimer <= 0) {
+    if ((input.jump || f.bufJump > 0) && !f.crouching && f.chainTimer <= 0) {
       f.bufJump = 0;
+      if (f.atkType) { f.atkType = null; f.released = false; f.hitDone = false; } // v0.83：攻击中可跳跃（跳取消）
       if (f.onGround) {
         f.vy = BASE_JUMP * f.stats.jumpMult;
         f.onGround = false;
@@ -1157,8 +1277,7 @@ function updateFighter(f, input) {
     }
   }
   if (input.bomb && f.hasBomb && !f.dead) {
-    bombs.push({ x: f.x, y: f.y - 60, timer: f.bombTimer });
-    f.hasBomb = false; f.bombTimer = 0;
+    throwBomb(f); // v0.83：炸弹改为投掷
   }
 
   if (f.dead) f.state = 'dead';
@@ -1253,16 +1372,19 @@ function updateAI() {
   const dir = dx > 0 ? 1 : -1;
   const sameLayer = Math.abs(e.standY - p.standY) < 6;
 
+  if (e.bombRetreat > 0) e.bombRetreat--;
+
   aiTimer--;
   if (aiTimer <= 0) {
     aiTimer = P.interval[0] + Math.floor(Math.random() * (P.interval[1] - P.interval[0] + 1));
-    if (!sameLayer) {
-      if (p.standY < e.standY - 6 && p.standY > e.standY - 190 && e.x + 40 > p.x - 100 && e.x - 40 < p.x + 100) e.aiPlan = 'jumpUp';
-      else if (p.standY < e.standY - 6) e.aiPlan = 'chase';
-      else e.aiPlan = 'descend';
+    if (e.hasBomb) {
+      e.aiPlan = 'bomb';          // v0.83：持弹优先使用炸弹
+    } else if (!sameLayer) {
+      planAINav(e, p);            // v0.83：跨层寻路（替换 jumpUp/descend 随机跳）
     } else {
       e.aiPlan = 'chase';
       e.aiJumped = false;
+      e.aiNav = null;
       const r = Math.random();
       if (dist < P.atkDist) {
         if (r < 0.50) e.aiState = 'attack';
@@ -1283,29 +1405,65 @@ function updateAI() {
     }
   }
 
-  // AI 也会去捡道具（护盾/血包/红心/炸弹），但仅在近处且玩家未出招时，避免脱离战斗
-  if (pickup && !e.dead && e.hp < e.maxHp * 0.9 &&
+  // AI 也会去捡道具（护盾/血包/红心/炸弹），但仅在近处、玩家未出招且未持弹时
+  if (pickup && !e.dead && !e.hasBomb && e.hp < e.maxHp * 0.9 &&
       Math.abs(pickup.x - e.x) < 400 && !p.atkType &&
       (pickup.type === 'health' || pickup.type === 'shield' || pickup.type === 'heart' || pickup.type === 'bomb') &&
       aiTimer % 15 < 3) {
     e.aiPlan = 'pickup';
   }
-  let move = 0, jump = false, crouch = false, attack = false, special = false;
+  let move = 0, jump = false, crouch = false, attack = false, special = false, bomb = false;
 
-  if (e.aiPlan === 'pickup') {
+  /* ---- 炸弹计划：逼近 → 投掷 → 后撤（消除持弹自爆） ---- */
+  if (e.aiPlan === 'bomb') {
+    if (e.bombRetreat > 0) {
+      move = -dir; // 扔弹后后撤，远离弹道
+    } else if (!e.hasBomb) {
+      e.aiPlan = 'chase'; e.aiNav = null;
+    } else if (e.bombTimer <= 60) {
+      // 引信将尽：立刻朝玩家方向投掷（至少不会原地自爆）
+      move = dir;
+      bomb = true;
+      e.bombRetreat = 60;
+    } else if (dist > 230) {
+      if (!sameLayer) {
+        // 跨层：先按导航靠近玩家所在层
+        planAINav(e, p);
+        const r = followAINav(e, p);
+        move = r.move; jump = r.jump;
+        if (e.aiPlan === 'hold' && e.bombTimer <= 90) { move = dir; bomb = true; e.bombRetreat = 50; }
+        e.aiPlan = 'bomb';
+      } else {
+        move = dir;
+      }
+    } else if (dist < 100) {
+      move = -dir; // 太近：拉开到投掷距离
+    } else {
+      move = dir;
+      bomb = true;
+      e.bombRetreat = 60;
+    }
+  } else if (e.aiPlan === 'pickup') {
     if (!pickup) e.aiPlan = 'chase';
     else {
       const pd = pickup.x - e.x;
       move = pd > 0 ? 1 : -1;
       if (Math.abs(pd) < 30) move = 0;
     }
-  } else if (e.aiPlan === 'descend') {
-    move = dir;
-    if (sameLayer) e.aiPlan = 'chase';
-  } else if (e.aiPlan === 'jumpUp') {
-    move = dir;
-    if (e.onGround && Math.random() < 0.4) jump = true;
-    if (sameLayer) e.aiPlan = 'chase';
+  } else if (e.aiPlan === 'nav') {
+    // v0.83：跨层导航
+    e.aiNavTimer--;
+    if (e.aiNavTimer <= 0) planAINav(e, p);
+    else {
+      const r = followAINav(e, p);
+      move = r.move; jump = r.jump;
+    }
+  } else if (e.aiPlan === 'hold') {
+    // 不可达高层：在玩家正下方待机（不乱转向、不空跳）
+    const cur = surfaceUnder(e);
+    const tx = clampv(p.x, cur.x0, cur.x1);
+    if (Math.abs(tx - e.x) > 14) move = tx > e.x ? 1 : -1;
+    if (Math.abs(e.standY - p.standY) < 6) e.aiPlan = 'chase';
   }
 
   /* 同层战斗行为 */
@@ -1360,11 +1518,10 @@ function updateAI() {
     if (p.crouching && attack && Math.random() < (settings.aiDifficulty === 'hard' ? 0.7 : 0.4)) attack = false;
   }
 
-  if (e.hasBomb && dist < 160 && Math.random() < 0.02) bomb = true; // AI 使用炸弹
   if (e.x < 90 && move === -1) move = 0;         // 靠近左侧虚空时不要继续左移
   if (e.x > MAP_W - 90 && move === 1) move = 0;  // 靠近右侧虚空时不要继续右移
 
-  return { move: move, jump: jump, jumpHeld: jump, crouch: crouch, attack: attack, special: special, bomb: false, face: dir };
+  return { move: move, jump: jump, jumpHeld: jump, crouch: crouch, attack: attack, special: special, bomb: bomb, face: dir };
 }
 
 /* ================= 命中判定与伤害（含大狗暴击） ================= */
@@ -1450,7 +1607,7 @@ function applyDamage(def, dmg, opts) {
     }
     if (!def.dummy) def.energy = Math.min(ENERGY_MAX, def.energy + dmg * 0.4);
     if (def.dummy) trainDamage += dmg;
-    hitstop = Math.max(hitstop, opts.isCrit ? 6 : (opts.attacker ? (opts.attacker.atkType === 'special' ? 4 : 2) : 4));
+    hitstop = Math.max(hitstop, opts.attacker ? 0 : 4); // v0.83：攻击命中不再冻结，仅环境爆炸保留顿帧
     shake = Math.max(shake, opts.isCrit ? 0.9 : (opts.attacker ? 0.6 : 0.8));
     if (!def.dummy) {
       def.hitstun = 12;
@@ -1591,10 +1748,33 @@ function applyPickup(f, type) {
 }
 
 /* ================= 炸弹 ================= */
+function throwBomb(f) {
+  bombs.push({ x: f.x + f.facing * 30, y: f.y - 60, vx: f.facing * 6, vy: -2.5, timer: 75, thrown: true });
+  f.hasBomb = false;
+  f.bombTimer = 0;
+  SFX.throw();
+}
 function updateBombs() {
+  const surfs = surfacesForNav();
   for (let i = bombs.length - 1; i >= 0; i--) {
-    bombs[i].timer--;
-    if (bombs[i].timer <= 0) { const b = bombs[i]; bombs.splice(i, 1); explode(b.x, b.y); }
+    const b = bombs[i];
+    b.timer--;
+    if (b.thrown) {
+      b.x += b.vx;
+      b.y += b.vy;
+      b.vy += 0.15;
+      let boom = false;
+      if (b.x < 0 || b.x > MAP_W) { b.x = clampv(b.x, 0, MAP_W); boom = true; }
+      else if (b.y >= GROUND_Y) boom = true;
+      else {
+        for (const st of surfs) {
+          if (st.y === GROUND_Y) continue;
+          if (b.x >= st.x0 && b.x <= st.x1 && b.y >= st.y && (b.y - b.vy) < st.y) { b.y = st.y; boom = true; break; }
+        }
+      }
+      if (boom) { bombs.splice(i, 1); explode(b.x, b.y); continue; }
+    }
+    if (b.timer <= 0) { const bb = bombs[i]; bombs.splice(i, 1); explode(bb.x, bb.y); }
   }
   for (let i = explosions.length - 1; i >= 0; i--) {
     explosions[i].life--;
@@ -1832,6 +2012,7 @@ const SFX = {
   special:   function () { sfxLimit('special', function () { playTone(100, 700, 'sawtooth', 0.5, 0.25); }); },
   defend:    function () { sfxLimit('defend', function () { playTone(460, 300, 'sine', 0.16, 0.2); }); },
   pickup:    function () { sfxLimit('pickup', function () { playTone(660, 990, 'sine', 0.12, 0.2); }); },
+  throw:     function () { sfxLimit('throw', function () { playTone(520, 260, 'sine', 0.1, 0.16); }); },
   explosion: function () { sfxLimit('explosion', function () { playTone(160, 40, 'sawtooth', 0.5, 0.3); }); },
   combo:     function () { sfxLimit('combo', function () { playTone(880, 1320, 'square', 0.1, 0.18); }); },
   crit:      function () { sfxLimit('crit', function () { playTone(520, 1560, 'sawtooth', 0.25, 0.22); }); },
@@ -2451,7 +2632,7 @@ function drawTutorial() {
   ctx.fillText('操作提示', W / 2, H / 2 - 60);
   ctx.font = '13px "Microsoft YaHei", sans-serif';
   ctx.fillText('移动 ' + keyDisplay(bindings.p1.left) + '/' + keyDisplay(bindings.p1.right) + ' · 跳跃 ' + keyDisplay(bindings.p1.jump) + ' · 蹲防 ' + keyDisplay(bindings.p1.crouch), W / 2, H / 2 - 32);
-  ctx.fillText('普攻 ' + keyDisplay(bindings.p1.attack) + ' · 大招 ' + keyDisplay(bindings.p1.special) + ' · 炸弹 ' + keyDisplay(bindings.p1.bomb) + ' · 暂停 ESC', W / 2, H / 2 - 10);
+  ctx.fillText('普攻 ' + keyDisplay(bindings.p1.attack) + ' · 大招 ' + keyDisplay(bindings.p1.special) + ' · 扔炸弹 ' + keyDisplay(bindings.p1.bomb) + ' · 暂停 ESC', W / 2, H / 2 - 10);
   ctx.fillText('空中 J 空中攻击 · 空中 S+J 下砸 · 被击飞按跳跃受身', W / 2, H / 2 + 14);
   ctx.fillText('能量满 100% 即可释放大招（命中/受击积攒）', W / 2, H / 2 + 36);
   ctx.globalAlpha = 1;
@@ -2461,7 +2642,7 @@ function drawHint() {
   ctx.font = '11px "Microsoft YaHei", sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.8)';
   ctx.textAlign = 'center';
-  ctx.fillText(mode === 'train' ? 'W 跳 · S 蹲 · J 攻 · K 大招 · M 炸弹 · ESC 暂停 · 右下角可重置木桩' : 'A/D 移动 · W 跳 · S 蹲防 · J 攻 · K 大招 · M 炸弹 · ESC 暂停', W / 2, H - 8);
+  ctx.fillText(mode === 'train' ? 'W 跳 · S 蹲 · J 攻 · K 大招 · M 扔炸弹 · ESC 暂停 · 右下角可重置木桩' : 'A/D 移动 · W 跳 · S 蹲防 · J 攻 · K 大招 · M 扔炸弹 · ESC 暂停', W / 2, H - 8);
 }
 
 function drawGameOver() {
