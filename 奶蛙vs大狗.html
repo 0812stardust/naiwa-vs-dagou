@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>奶蛙 vs 大狗 v0.83</title>
+<title>奶蛙 vs 大狗 v0.84</title>
 <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22short_name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%2F%22%7D'>
 <style>
   /* ===== v0.7 设计系统（CSS 变量 + 四套主题） ===== */
@@ -168,7 +168,7 @@
     <div class="card">
       <h1>奶蛙 vs 大狗</h1>
       <p class="sub">🐸 清新格斗对战 🐶</p>
-      <p class="ver">v0.83</p>
+      <p class="ver">v0.84</p>
       <input id="nameInput" type="text" maxlength="12" placeholder="输入你的昵称">
       <button id="btnLogin" class="mode-card" style="background:linear-gradient(135deg,#ffd76a,#ffb75e);color:#7a5200;">进入游戏</button>
     </div>
@@ -179,7 +179,7 @@
     <div class="card">
       <h1>奶蛙 vs 大狗</h1>
       <p class="sub" id="menuGreeting">欢迎！</p>
-      <p class="ver">v0.83</p>
+      <p class="ver">v0.84</p>
       <button id="btnStart" class="mode-card">🤖 人机对战</button>
       <button id="btnVsP2" class="mode-card">👥 双人对战</button>
       <button id="btnTrain" class="mode-card">🎯 训练模式</button>
@@ -424,16 +424,33 @@ function getOtherChar(key) {
 const images = {};
 const bgImages = {};
 let imagesLeft = 0;
+/* v0.84：角色贴图加载失败自动重试（github.io 网络抖动/坏缓存响应的兜底），
+   重试时带时间戳参数绕过浏览器缓存；彻底失败后才显示占位角色卡片 */
+const IMG_MAX_RETRY = 3;
+function loadSprite(key) {
+  if (images[key] && images[key]._done) return;
+  imagesLeft++;
+  const img = new Image();
+  img._retries = 0;
+  img.onload = function () { img._done = true; imagesLeft--; };
+  img.onerror = function () {
+    if (img._retries < IMG_MAX_RETRY) {
+      img._retries++;
+      setTimeout(function () {
+        img.src = key + '?r=' + img._retries + '_' + Date.now(); // 时间戳绕过坏缓存
+      }, 250 * img._retries);
+    } else {
+      img._done = true;
+      imagesLeft--;
+    }
+  };
+  img.src = key;
+  images[key] = img;
+}
 for (const spec of Object.values(CHAR_SPECS)) {
   for (const side of Object.values(spec.frames)) {
     for (const file of [side.atk, side.crouch, side.special, side.jump].concat(side.mv)) {
-      const key = spec.folder + '/' + file + '.png';
-      if (images[key]) continue;
-      imagesLeft++;
-      const img = new Image();
-      img.onload = img.onerror = function () { imagesLeft--; };
-      img.src = key;
-      images[key] = img;
+      loadSprite(spec.folder + '/' + file + '.png');
     }
   }
 }
@@ -2378,8 +2395,17 @@ function drawCharacter(f) {
   if (img && img.complete && img.naturalWidth > 0) {
     ctx.drawImage(img, sx - cw / 2, topY, cw, ch);
   } else {
+    // v0.84：兜底绘制——圆角角色卡片 + 表情，避免出现纯色方块
     ctx.fillStyle = f.color;
-    ctx.fillRect(sx - cw / 2, topY, cw, ch);
+    ctx.beginPath();
+    ctx.roundRect(sx - cw / 2, topY, cw, ch, 18 * viewport.scale);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = (44 * viewport.scale) + 'px "Segoe UI Emoji", "Apple Color Emoji", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(CHAR_SPECS[f.char].emoji, sx, topY + ch * 0.52);
+    ctx.textBaseline = 'alphabetic';
   }
   ctx.restore();
   // 受击白闪
