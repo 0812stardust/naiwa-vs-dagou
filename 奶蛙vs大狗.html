@@ -1090,7 +1090,10 @@ function updateFighter(f, input) {
     if (!landed) f.onGround = false;
     f.y += f.vy;
     f.wasAir = !f.onGround;
-  if (f.x < 0 || f.x > MAP_W) f.inVoid = true; // 越过地面边缘即进入虚空
+  if (f.x < 0 || f.x > MAP_W) {
+    f.inVoid = true; // 越过地面边缘即进入虚空
+    if (frame % 3 === 0) spawnParticle(f.x + (Math.random() * 24 - 12), f.y - 6, 'rgba(140,160,200,0.5)');
+  }
 
   if (f.spawnDrop && f.onGround) {
     f.spawnDrop = false;
@@ -1713,8 +1716,8 @@ function update() {
     if (p1.dead) updateDead(p1); else updateFighter(p1, in1);
     if (p2.controls === 'dummy') { updateDummy(p2); }
     else if (p2.dead) updateDead(p2); else updateFighter(p2, in2);
-    if (!p1.dead && p1.inVoid && p1.y > GROUND_Y + 90) applyVoidDeath(p1);
-    if (!p2.dead && p2.inVoid && p2.y > GROUND_Y + 90) applyVoidDeath(p2);
+    if (!p1.dead && p1.inVoid && p1.y > H + 120) applyVoidDeath(p1);
+    if (!p2.dead && p2.inVoid && p2.y > H + 120) applyVoidDeath(p2);
     resolveAttack(p1, p2);
     resolveAttack(p2, p1);
     if (!p1.dead && !p2.dead && p2.controls !== 'dummy') pushApart();
@@ -2117,7 +2120,7 @@ function drawExplosions() {
 }
 
 function drawCharacter(f) {
-  if (f.inVoid) return; // 进入虚空后不再绘制，虚空与背景保持一致
+  // 进入虚空后仍绘制：角色会可见地坠落到地图下方（坠落虚空），直到死亡
   const isDead = f.dead;
   if (isDead) ctx.globalAlpha = 0.6;
   const frameName = currentFrameName(f);
