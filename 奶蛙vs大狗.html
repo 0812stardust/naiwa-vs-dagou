@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>奶蛙 vs 大狗 v0.6</title>
+<title>奶蛙 vs 大狗 v0.82</title>
 <link rel="manifest" href='data:application/manifest+json,%7B%22name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22short_name%22%3A%22%E5%A5%B6%E8%9B%99vs%E5%A4%A7%E7%8B%97%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%2F%22%7D'>
 <style>
   /* ===== v0.7 设计系统（CSS 变量 + 四套主题） ===== */
@@ -118,6 +118,33 @@
   .t-left { left: 14px; bottom: 70px; } .t-right { left: 82px; bottom: 70px; }
   .t-jump { left: 30px; bottom: 138px; } .t-crouch { left: 82px; bottom: 14px; }
   .t-attack { right: 82px; bottom: 70px; } .t-special { right: 14px; bottom: 70px; } .t-bomb { right: 46px; bottom: 138px; }
+
+  /* ===== v0.82 结算界面（与开始界面同风格） ===== */
+  .result-card { width: 384px; }
+  .result-title { font-size: 28px; font-weight: 800; letter-spacing: 6px; margin: 0 0 6px; }
+  .result-title.win { color: #e8a33d; }
+  .result-title.lose { color: #e5635c; }
+  .result-title.draw { color: #8e9aab; }
+  [data-theme="cyber"] .result-title.win { color: #ffd166; }
+  [data-theme="cyber"] .result-title.lose { color: #ff6b81; }
+  .result-avatar { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 0 6px; }
+  .avatar-ring { width: 68px; height: 68px; border-radius: 50%; background: var(--pill); border: 3px solid var(--accent);
+    display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 34px;
+    box-shadow: 0 6px 18px rgba(20,20,40,.14); }
+  .avatar-ring img { width: 100%; height: 100%; object-fit: cover; }
+  .avatar-name { font-size: 13px; color: var(--sub); font-weight: 600; letter-spacing: 1px; }
+  .result-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 340px; margin: 0 auto; }
+  .result-stats.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .stat-chip { background: var(--pill); border: 1px solid var(--card-line); border-radius: 12px; padding: 5px 2px 4px; }
+  .stat-chip span { display: block; font-size: 10px; color: var(--sub); letter-spacing: 1px; }
+  .stat-chip b { display: block; font-size: 15px; color: var(--text); margin-top: 2px; }
+  .stat-score { grid-column: 1 / -1; margin-top: 2px; background: linear-gradient(135deg, var(--btn1), var(--btn2));
+    border: 1px solid var(--btn-line); border-radius: 13px; padding: 7px 0; font-size: 13px; color: var(--text);
+    font-weight: 700; letter-spacing: 1px; }
+  .result-restart { width: 250px !important; margin-top: 12px !important; font-size: 16px !important;
+    background: linear-gradient(135deg, #54e0a5, #2fc78a) !important; color: #0b4d33 !important;
+    box-shadow: 0 6px 16px rgba(47,199,138,.35) !important; }
+  .result-menu { margin-top: 6px !important; }
 </style>
 </head>
 <body>
@@ -141,7 +168,7 @@
     <div class="card">
       <h1>奶蛙 vs 大狗</h1>
       <p class="sub">🐸 清新格斗对战 🐶</p>
-      <p class="ver">v0.6</p>
+      <p class="ver">v0.82</p>
       <input id="nameInput" type="text" maxlength="12" placeholder="输入你的昵称">
       <button id="btnLogin" class="mode-card" style="background:linear-gradient(135deg,#ffd76a,#ffb75e);color:#7a5200;">进入游戏</button>
     </div>
@@ -152,7 +179,7 @@
     <div class="card">
       <h1>奶蛙 vs 大狗</h1>
       <p class="sub" id="menuGreeting">欢迎！</p>
-      <p class="ver">v0.6</p>
+      <p class="ver">v0.82</p>
       <button id="btnStart" class="mode-card">🤖 人机对战</button>
       <button id="btnVsP2" class="mode-card">👥 双人对战</button>
       <button id="btnTrain" class="mode-card">🎯 训练模式</button>
@@ -257,6 +284,21 @@
       <div class="range-row"><span>音乐音量</span><input id="bgmSlider" type="range" min="0" max="100" value="40"></div>
       <div class="range-row"><span>音效音量</span><input id="sfxSlider" type="range" min="0" max="100" value="80"></div>
       <button id="btnQuitBattle" class="small-btn">退 出</button>
+    </div>
+  </div>
+
+  <!-- 结算界面（死亡/对局结束后展示，风格与开始界面一致） -->
+  <div id="resultScreen" class="overlay hidden">
+    <div class="card result-card">
+      <h2>对局结算</h2>
+      <div class="result-title" id="resultTitle">胜 利</div>
+      <div class="result-avatar">
+        <div class="avatar-ring" id="resultAvatar">🐸</div>
+        <div class="avatar-name" id="resultWinner"></div>
+      </div>
+      <div class="result-stats" id="resultStats"></div>
+      <button id="btnResultRestart" class="mode-card result-restart">🔁 再来一局</button>
+      <button id="btnResultMenu" class="small-btn result-menu">🏠 返回主菜单</button>
     </div>
   </div>
 
@@ -467,12 +509,13 @@ let hitstop = 0;
 let slowmo = 0;
 let shake = 0;
 let gameOverTimer = 0;
+let resultShown = false;   // 结算界面是否已展示（v0.82）
 let tutorialTimer = 0;   // 新手引导倒计时
 let trainDamage = 0;     // 训练模式累计伤害
 let countdownTimer = 0;  // 开局 3-2-1 倒计时
 const afterimages = [];  // 受击残影
 
-const OVERLAY_IDS = ['loginScreen', 'menuScreen', 'readyScreen', 'mapSelectScreen', 'settingsScreen', 'keysScreen', 'statsScreen', 'pauseScreen', 'farewellScreen'];
+const OVERLAY_IDS = ['loginScreen', 'menuScreen', 'readyScreen', 'mapSelectScreen', 'settingsScreen', 'keysScreen', 'statsScreen', 'pauseScreen', 'resultScreen', 'farewellScreen'];
 
 function showScreen(name) {
   for (const id of OVERLAY_IDS) $(id).classList.add('hidden');
@@ -663,6 +706,8 @@ $('btnExit').addEventListener('click', function () {
   setTimeout(function () { showScreen('farewellScreen'); }, 300);
 });
 $('btnBackMenu').addEventListener('click', showMenu);
+$('btnResultRestart').addEventListener('click', function () { startBattle(); });
+$('btnResultMenu').addEventListener('click', function () { showMenu(); });
 $('btnPickMap').addEventListener('click', showMapSelect);
 $('btnMapBack').addEventListener('click', function () { showScreen('readyScreen'); });
 $('dummyStand').addEventListener('click', function () { trainDummyMode = 'stand'; settings.trainDummy = 'stand'; saveJSON('game_settings', settings); updateReadyUI(); });
@@ -1471,6 +1516,7 @@ function checkGameOver() {
   if (next && next !== gameOver) {
     gameOver = next;
     gameOverTimer = 0;
+    resultShown = false;   // 对局结束：重新展示结算界面
     if (next === 'win') { SFX.win(); addScore(500); stats.wins++; }
     else if (next === 'lose') SFX.lose();
     else SFX.draw();
@@ -1677,7 +1723,7 @@ function startBattle() {
   }
   gameOver = null;
   paused = false;
-  hitstop = 0; slowmo = 0; shake = 0; gameOverTimer = 0;
+  hitstop = 0; slowmo = 0; shake = 0; gameOverTimer = 0; resultShown = false;
   particles.length = 0;
   damageNumbers.length = 0;
   specialAreas.length = 0;
@@ -2420,52 +2466,96 @@ function drawHint() {
 
 function drawGameOver() {
   gameOverTimer++;
-  const t = Math.min(1, gameOverTimer / 30);
-  const scale = 0.6 + 0.4 * easeOutBack(t);
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  const t = Math.min(1, gameOverTimer / 40);
+  if (gameOverTimer >= 40) { showResultScreen(); return; }
+  // 简短 KO 时刻：大标题 + 胜者剪影，随后弹出结算界面（v0.82）
+  const scale = 0.7 + 0.3 * easeOutBack(t);
+  ctx.fillStyle = 'rgba(20,20,40,0.28)';
   ctx.fillRect(0, 0, W, H);
   ctx.save();
-  ctx.translate(W / 2, H / 2 - 40);
+  ctx.translate(W / 2, H / 2 - 30);
   ctx.scale(scale, scale);
   ctx.textAlign = 'center';
-  ctx.font = 'bold 54px "Microsoft YaHei", sans-serif';
+  ctx.font = 'bold 56px "Microsoft YaHei", sans-serif';
   let text = '';
   if (gameOver === 'win') text = mode === 'vsAI' ? '胜 利 !' : (mode === 'train' ? '训练结束' : 'P1 胜利 !');
-  else if (gameOver === 'lose') text = mode === 'vsAI' ? '失 败 !' : (mode === 'vsP2' ? 'P2 胜利 !' : '');
+  else if (gameOver === 'lose') text = mode === 'vsAI' ? '失 败 !' : (mode === 'vsP2' ? 'P2 胜利 !' : '训练结束');
   else text = '平 局 !';
-  ctx.fillStyle = gameOver === 'win' ? '#ffb75e' : (gameOver === 'lose' ? '#ff6b6b' : '#8e9aab');
+  ctx.fillStyle = gameOver === 'win' ? '#ffd166' : (gameOver === 'lose' ? '#ff6b6b' : '#9aa5b1');
   ctx.fillText(text, 0, 0);
   ctx.restore();
   if (gameOver === 'win' || gameOver === 'lose') {
     const winner = gameOver === 'win' ? p1 : p2;
     const img = images[winner.folder + '/' + frameSet(winner).mv[0] + '.png'];
     if (img && img.complete && img.naturalWidth > 0) {
-      const bw = 84 * (0.8 + 0.2 * t);
-      ctx.drawImage(img, W / 2 - bw / 2, H / 2 + 6, bw, bw * 1.25);
-      ctx.font = 'bold 15px "Microsoft YaHei", sans-serif';
-      ctx.fillStyle = '#333';
-      ctx.textAlign = 'center';
-      ctx.fillText(winner.label + ' 胜出', W / 2, H / 2 + 6 + bw * 1.25 + 20);
+      const bw = 64 * (0.7 + 0.3 * t);
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(img, W / 2 - bw / 2, H / 2 + 26, bw, bw * 1.25);
+      ctx.globalAlpha = 1;
     }
   }
-  // 本局统计
-  ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  ctx.beginPath(); ctx.roundRect(W / 2 - 195, H / 2 + 150, 390, 58, 14); ctx.fill();
-  ctx.font = '13px "Microsoft YaHei", sans-serif';
-  ctx.fillStyle = '#333';
-  ctx.textAlign = 'center';
-  if (mode === 'vsP2') {
-    ctx.fillText('P1　伤害 ' + p1.dmgDealt + ' · 拾取 ' + p1.pickups + ' · 击杀 ' + p1.kills + ' · 得分 ' + matchScore, W / 2, H / 2 + 170);
-    ctx.fillText('P2　伤害 ' + p2.dmgDealt + ' · 拾取 ' + p2.pickups + ' · 击杀 ' + p2.kills, W / 2, H / 2 + 192);
-  } else {
-    ctx.fillText('伤害 ' + p1.dmgDealt + ' · 最高连击 ' + matchCombo + ' · 拾取 ' + p1.pickups + ' · 击杀 ' + p1.kills, W / 2, H / 2 + 170);
-    ctx.fillText('得分 ' + matchScore, W / 2, H / 2 + 192);
-  }
-  ctx.font = '17px "Microsoft YaHei", sans-serif';
-  ctx.fillStyle = '#4a5568';
-  ctx.textAlign = 'center';
-  ctx.fillText('按 R 再来一局 · 按 M 返回主菜单', W / 2, H / 2 + 226);
 }
+
+function fmtTime(t) {
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function showResultScreen() {
+  resultShown = true;
+  // 结果标题
+  let title, cls;
+  if (gameOver === 'win') { title = mode === 'vsAI' ? '胜 利 !' : (mode === 'train' ? '训练结束' : 'P1 胜利 !'); cls = 'win'; }
+  else if (gameOver === 'lose') { title = mode === 'vsAI' ? '失 败 !' : (mode === 'vsP2' ? 'P2 胜利 !' : '训练结束'); cls = 'lose'; }
+  else { title = '平 局 !'; cls = 'draw'; }
+  $('resultTitle').textContent = title;
+  $('resultTitle').className = 'result-title ' + cls;
+  // 胜者头像（角色立绘 / emoji）
+  const winner = (gameOver === 'win' || gameOver === 'lose') ? (gameOver === 'win' ? p1 : p2) : null;
+  const ava = $('resultAvatar');
+  if (winner) {
+    const img = images[winner.folder + '/' + frameSet(winner).mv[0] + '.png'];
+    if (img && img.complete && img.naturalWidth > 0) {
+      ava.innerHTML = '';
+      const im = document.createElement('img');
+      im.src = img.src;
+      im.alt = winner.label;
+      ava.appendChild(im);
+    } else {
+      ava.textContent = winner.emoji;
+    }
+    $('resultWinner').textContent = winner.label + ' 胜出';
+  } else {
+    ava.textContent = '🤝';
+    $('resultWinner').textContent = '双方战平，不分胜负';
+  }
+  // 本局统计
+  buildResultStats();
+  // 展示结算界面（隐藏暂停/重置/触屏按键）
+  $('pauseBtn').classList.add('hidden');
+  $('trainResetBtn').classList.add('hidden');
+  $('touchCtrl').classList.add('hidden');
+  $('resultScreen').classList.remove('hidden');
+}
+
+function buildResultStats() {
+  const wrap = $('resultStats');
+  wrap.className = mode === 'vsP2' ? 'result-stats cols-3' : 'result-stats';
+  let html = '';
+  function chip(label, val) { return '<div class="stat-chip"><span>' + label + '</span><b>' + val + '</b></div>'; }
+  if (mode === 'train') {
+    html += chip('累计伤害', trainDamage) + chip('最高连击', matchCombo) + chip('拾取', p1.pickups) + chip('击杀', p1.kills);
+  } else if (mode === 'vsP2') {
+    html += chip('P1 伤害', p1.dmgDealt) + chip('P1 拾取', p1.pickups) + chip('P1 击杀', p1.kills);
+    html += chip('P2 伤害', p2.dmgDealt) + chip('P2 拾取', p2.pickups) + chip('P2 击杀', p2.kills);
+  } else {
+    html += chip('伤害', p1.dmgDealt) + chip('最高连击', matchCombo) + chip('拾取', p1.pickups) + chip('击杀', p1.kills);
+  }
+  html += '<div class="stat-score">本局得分 ' + matchScore + ' · 对局时间 ' + fmtTime(matchTime) + '</div>';
+  wrap.innerHTML = html;
+}
+
 function easeOutBack(t) {
   const c1 = 1.70158, c3 = c1 + 1;
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
@@ -2495,8 +2585,8 @@ function draw() {
   drawCountdown();
   drawHUD();
   if (tutorialTimer > 0 && !gameOver) drawTutorial();
-  drawHint();
-  if (gameOver) drawGameOver();
+  if (!resultShown) drawHint();
+  if (gameOver && !resultShown) drawGameOver();
   if (imagesLeft > 0) {
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fillRect(0, 0, W, H);
